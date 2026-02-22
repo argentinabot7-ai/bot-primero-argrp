@@ -663,7 +663,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             .setTimestamp();
 
           const bienvenidaChannel = await client.channels.fetch(CANAL_BIENVENIDA);
-          if (bienvenidaChannel?.isTextBased()) {
+          if (bienvenidaChannel instanceof TextChannel || bienvenidaChannel instanceof NewsChannel) {
             const saludarRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
               new ButtonBuilder().setCustomId(`saludar_${pending.targetUserId}`).setLabel("Saludar").setStyle(ButtonStyle.Success),
             );
@@ -772,7 +772,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" })
           .setTimestamp();
         const canalDestino = await client.channels.fetch(CANAL_DESTINO_CALIFICACIONES);
-        if (canalDestino?.isTextBased()) {
+        if (canalDestino instanceof TextChannel || canalDestino instanceof NewsChannel) {
           await canalDestino.send({ content: `<@${staffUser.id}>`, embeds: [embed] });
         }
         return interaction.reply({ content: "<a:Aprobado:1399874076402778122> | Tu calificación ha sido enviada correctamente.", ephemeral: true });
@@ -920,7 +920,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           .setFooter({ text: `Registrado por ${interaction.user.tag} · Argentina RP┊ER:LC`, iconURL: interaction.user.displayAvatarURL() })
           .setTimestamp();
         const entornoChannel = await client.channels.fetch(CANAL_ENTORNO);
-        if (!entornoChannel?.isTextBased()) return interaction.editReply({ content: "No se pudo acceder al canal de entorno. Contactá a un administrador." });
+        if (!(entornoChannel instanceof TextChannel) && !(entornoChannel instanceof NewsChannel)) return interaction.editReply({ content: "No se pudo acceder al canal de entorno. Contactá a un administrador." });
         await entornoChannel.send({ embeds: [entornoEmbed] });
         return interaction.editReply({ content: `<a:check1:1468762093741412553> | Tu entorno ha sido registrado exitosamente en <#${CANAL_ENTORNO}>.` });
       } catch (error: any) {
