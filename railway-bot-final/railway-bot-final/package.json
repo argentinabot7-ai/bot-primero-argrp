@@ -1,11 +1,10 @@
 {
   "name": "argentina-rp-bot",
   "version": "1.0.0",
-  "type": "module",
   "license": "MIT",
   "scripts": {
     "dev": "tsx server/index.ts",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.json && node scripts/fix-paths.cjs",
     "start": "node dist/server/index.js",
     "db:push": "drizzle-kit push"
   },
