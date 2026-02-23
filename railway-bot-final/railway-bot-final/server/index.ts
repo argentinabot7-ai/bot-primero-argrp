@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { createServer } from "http";
+import { initDatabase } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
@@ -43,6 +44,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Inicializar la base de datos antes de arrancar el bot
+  await initDatabase();
+
   await registerRoutes(httpServer, app);
 
   app.get("/", (_req, res) => {
