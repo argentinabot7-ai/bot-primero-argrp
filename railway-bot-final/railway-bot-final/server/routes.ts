@@ -364,7 +364,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     const statuses = [
       { name: "Developer: @vladimirfernan.", type: ActivityType.Watching },
-      { name: "Comunidad: discord.gg/argrp",  type: ActivityType.Playing  },
       { name: "TikTok: Argentina_rperlc",      type: ActivityType.Watching },
     ];
     let si = 0;
