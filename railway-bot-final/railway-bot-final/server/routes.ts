@@ -25,7 +25,6 @@ import {
 import * as fs from "fs";
 import * as path from "path";
 
-// ── Base de datos SQLite ──────────────────────────────────────────────────────
 import {
   insertArresto,
   getArrestosByUser,
@@ -39,7 +38,6 @@ import {
 const SCRIPT_DIR = path.join(process.cwd(), "server");
 const LOGO_PATH  = path.join(SCRIPT_DIR, "logo_argrp.png");
 
-// ── Constantes de canales ─────────────────────────────────────────────────────
 const CANAL_CALIFICAR_STAFF        = "1349870171564539968";
 const CANAL_DESTINO_CALIFICACIONES = "1406301292967628943";
 const CANAL_VERIFICAR              = "1458212074453864601";
@@ -51,7 +49,6 @@ const CANAL_SOLICITAR_ROL          = "1349870172663582753";
 const CANAL_LOG_REGISTROS          = "1475710164337168437";
 const GUILD_ID                     = "1349870169056350270";
 
-// ── Constantes de roles ───────────────────────────────────────────────────────
 const ROL_MODERADOR        = "1349870169756930109";
 const ROL_POSTULANTE_STAFF = "1349870169756930110";
 const ROL_MODERADOR_MUTE   = "1349870169756930113";
@@ -67,7 +64,6 @@ const ROLES_POLICIA = [
 
 const ROL_STAFF_SOLICITUDES = "1465134485048922382";
 
-// Tecnicaturas
 const ROL_ENCARGADO_DNI     = "1350155232822165626";
 const ROL_ASISTENTE_VERIF   = "1350137848010899548";
 const ROL_ENCARGADO_EVENTOS = "1469722340131733625";
@@ -88,7 +84,6 @@ const TECNICATURA_MAP: Record<string, { roleId: string; label: string }> = {
 
 const DISABLED_VALUES = ["disabled_cf", "disabled_cks"];
 
-// ── Maps de estado temporal ───────────────────────────────────────────────────
 const pendingVerifications = new Map<string, {
   targetUserId:  string;
   usuarioRoblox: string;
@@ -113,8 +108,6 @@ const pendingSolicitudes = new Map<string, {
   channelId?:       string;
 }>();
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function hasPoliceRole(member: any): boolean {
   if (!member || !("roles" in member)) return false;
   return ROLES_POLICIA.some((r) => (member.roles as any).cache.has(r));
@@ -133,24 +126,28 @@ function fechaHoraAhora(): string {
   return new Date().toLocaleString("es-AR");
 }
 
-// ── Parsear montos con $ desde un texto ──────────────────────────────────────
-function parsearMontos(texto: string): string {
-  const matches = texto.match(/\$\s*[\d.,]+/g);
-  if (!matches || matches.length === 0) return "Sin monto especificado.";
-  // Limpiar y unir todos los montos encontrados
-  return matches.map((m) => m.replace(/\s/g, "")).join(", ");
+// ── Calcula montos con p/ (ej: p/500, p/1.000) ────────────────────────────────
+function calcularGastos(texto: string): { detalle: string; total: string } {
+  const matches = texto.match(/p\/\s*[\d.,]+/gi);
+  if (!matches || matches.length === 0) {
+    return { detalle: "Sin gastos especificados.", total: "p/0" };
+  }
+  const montos: number[] = matches.map((m) => {
+    const raw = m.replace(/p\/\s*/i, "").replace(/\./g, "").replace(",", ".");
+    const num = parseFloat(raw);
+    return isNaN(num) ? 0 : num;
+  });
+  const total   = montos.reduce((a, b) => a + b, 0);
+  const detalle = matches.map((m) => `\`${m.replace(/\s/g, "")}\``).join(", ");
+  const totalFormato = `**p/${total.toLocaleString("es-AR")}**`;
+  return { detalle, total: totalFormato };
 }
 
-// ── Helpers Roblox ────────────────────────────────────────────────────────────
-
-async function getRobloxData(
-  username: string,
-): Promise<{ id: number; name: string; avatarUrl: string; fullBodyUrl: string } | null> {
+async function getRobloxData(username: string): Promise<{ id: number; name: string; avatarUrl: string; fullBodyUrl: string } | null> {
   try {
     const userRes  = await fetch("https://users.roblox.com/v1/usernames/users", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ usernames: [username], excludeBannedUsers: true }),
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ usernames: [username], excludeBannedUsers: true }),
     });
     const userData = await userRes.json();
     if (!userData.data || userData.data.length === 0) return null;
@@ -227,7 +224,6 @@ function isTextChannel(ch: any): ch is TextChannel | DMChannel | NewsChannel | T
   return ch instanceof TextChannel || ch instanceof DMChannel || ch instanceof NewsChannel || ch instanceof ThreadChannel;
 }
 
-// ── Roles de trabajos primarios ───────────────────────────────────────────────
 const ROLES_TRABAJOS_PRIMARIOS: { id: string; nombre: string; emoji: string }[] = [
   { id: "1436174608339566777", nombre: "Juez - Fiscal",                  emoji: "💼" },
   { id: "1349870169337368664", nombre: "Abogado",                        emoji: "💼" },
@@ -256,7 +252,6 @@ const ROLES_DISPONIBLES = ROLES_TRABAJOS_PRIMARIOS.map((r) => ({
   value: r.id,
 }));
 
-// ── FAQ ───────────────────────────────────────────────────────────────────────
 const FAQ_MENUS = [
   {
     label: "✅ | ¿Cómo me verifico?", value: "faq_verificacion", description: "Métodos de verificación en la comunidad.",
@@ -280,9 +275,6 @@ const FAQ_MENUS = [
   },
 ];
 
-// ═════════════════════════════════════════════════════════════════════════════
-// MAIN
-// ═════════════════════════════════════════════════════════════════════════════
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   app.get("/api/stats", async (_req, res) => { res.json({ status: "active" }); });
 
@@ -296,61 +288,47 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     ],
   });
 
-  // ── Slash commands ────────────────────────────────────────────────────────
   const commands = [
     new SlashCommandBuilder().setName("calificar-staff").setDescription("Califica el desempeño de un miembro del staff.")
       .addUserOption((o) => o.setName("staff").setDescription("Miembro del staff a calificar.").setRequired(true))
       .addIntegerOption((o) => o.setName("estrellas").setDescription("Calificación de 1 a 5 estrellas.").setRequired(true).addChoices({ name: "⭐", value: 1 }, { name: "⭐⭐", value: 2 }, { name: "⭐⭐⭐", value: 3 }, { name: "⭐⭐⭐⭐", value: 4 }, { name: "⭐⭐⭐⭐⭐", value: 5 }))
       .addStringOption((o) => o.setName("opinion_personal").setDescription("Explica por qué das esta calificación.").setRequired(true).setMaxLength(500)),
-
     new SlashCommandBuilder().setName("lista-staff").setDescription("Muestra la lista de moderadores y postulantes del staff."),
-
     new SlashCommandBuilder().setName("muted").setDescription("Silencia a un usuario por un tiempo determinado.")
       .addUserOption((o) => o.setName("usuario").setDescription("Usuario a silenciar.").setRequired(true))
       .addStringOption((o) => o.setName("tiempo").setDescription("Tiempo de silencio (ej: 1 hora, 30 minutos, 2 días).").setRequired(true))
       .addStringOption((o) => o.setName("motivo").setDescription("Motivo del silencio.").setRequired(true).setMaxLength(500)),
-
     new SlashCommandBuilder().setName("verificar").setDescription("Verifica a un usuario de la comunidad.")
       .addUserOption((o) => o.setName("usuario").setDescription("Usuario a verificar.").setRequired(true))
       .addStringOption((o) => o.setName("usuario_roblox").setDescription("Nombre de usuario de Roblox.").setRequired(true).setAutocomplete(true)),
-
     new SlashCommandBuilder().setName("entorno").setDescription("Registra el entorno actual de tu personaje en el roleplay.")
       .addStringOption((o) => o.setName("lugar").setDescription("Lugar donde se encuentra tu personaje.").setRequired(true))
       .addStringOption((o) => o.setName("entorno").setDescription("Descripción del entorno o situación actual.").setRequired(true).setMaxLength(500))
       .addStringOption((o) => o.setName("usuario_roblox").setDescription("Tu nombre de usuario de Roblox.").setRequired(true).setAutocomplete(true)),
-
     new SlashCommandBuilder().setName("roblox-info").setDescription("Muestra información detallada de una cuenta de Roblox.")
       .addStringOption((o) => o.setName("usuario_roblox").setDescription("Nombre de usuario de Roblox. Si no ponés nada, se usa tu apodo.").setRequired(false).setAutocomplete(true)),
-
     new SlashCommandBuilder().setName("arrestar").setDescription("Registra el arresto de un usuario.")
       .addUserOption((o) => o.setName("usuario").setDescription("Usuario arrestado.").setRequired(true))
       .addStringOption((o) => o.setName("cargos").setDescription("Cargos del arresto. (mín. 15, máx. 5000 caracteres)").setRequired(true).setMaxLength(5000).setMinLength(15))
       .addAttachmentOption((o) => o.setName("foto-arresto").setDescription("Foto del arresto como prueba.").setRequired(true)),
-
     new SlashCommandBuilder().setName("registros-arrestos").setDescription("Muestra los registros de arrestos de un usuario.")
       .addUserOption((o) => o.setName("usuario").setDescription("Usuario a consultar (opcional).").setRequired(false)),
-
     new SlashCommandBuilder().setName("eliminar-arrestos").setDescription("Elimina los arrestos de un usuario de la base de datos.")
       .addUserOption((o) => o.setName("usuario").setDescription("Usuario al que se le eliminarán los arrestos.").setRequired(true))
       .addStringOption((o) => o.setName("motivo").setDescription("Motivo de la eliminación.").setRequired(true).setMaxLength(500)),
-
     new SlashCommandBuilder().setName("multar").setDescription("Registra una multa a un usuario.")
       .addUserOption((o) => o.setName("usuario").setDescription("Usuario multado.").setRequired(true))
       .addStringOption((o) => o.setName("cargos").setDescription("Cargos de la multa. (mín. 15, máx. 5000 caracteres)").setRequired(true).setMaxLength(5000).setMinLength(15))
       .addAttachmentOption((o) => o.setName("foto-multa").setDescription("Foto de la multa como prueba.").setRequired(true)),
-
     new SlashCommandBuilder().setName("eliminar-multa").setDescription("Elimina las multas de un usuario de la base de datos.")
       .addUserOption((o) => o.setName("usuario").setDescription("Usuario al que se le eliminarán las multas.").setRequired(true))
       .addStringOption((o) => o.setName("motivo").setDescription("Motivo de la eliminación.").setRequired(true).setMaxLength(500)),
-
     new SlashCommandBuilder().setName("solicitar-rol").setDescription("Solicita un rol al staff.")
       .addStringOption((o) => o.setName("nombre-rol").setDescription("Rol que deseas solicitar.").setRequired(true).addChoices(...ROLES_DISPONIBLES.map((r) => ({ name: r.name, value: r.value }))))
       .addStringOption((o) => o.setName("motivo").setDescription("Motivo de tu solicitud.").setRequired(true).setMaxLength(500))
       .addAttachmentOption((o) => o.setName("pruebas").setDescription("Foto con las pruebas de tu solicitud.").setRequired(true)),
-
     new SlashCommandBuilder().setName("info-discord").setDescription("Muestra información y estadísticas de un usuario del servidor.")
       .addUserOption((o) => o.setName("usuario").setDescription("Usuario a consultar (opcional, por defecto sos vos).").setRequired(false)),
-
     new SlashCommandBuilder().setName("eliminar-trabajo").setDescription("Elimina un trabajo primario de un usuario.")
       .addUserOption((o) => o.setName("usuario").setDescription("Usuario al que se le eliminará el trabajo.").setRequired(true))
       .addStringOption((o) => o.setName("trabajo").setDescription("Trabajo a eliminar.").setRequired(true).addChoices(
@@ -366,7 +344,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       )),
   ];
 
-  // ── Ready ─────────────────────────────────────────────────────────────────
   client.once("ready", async () => {
     console.log(`Logged in as ${client.user?.tag}!`);
     console.log("Base de datos SQLite iniciada correctamente.");
@@ -383,16 +360,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const appId   = client.user.id;
         const guildId = "1349870169056350270";
         await rest.put(Routes.applicationCommands(appId), { body: [] });
-        console.log("Comandos globales eliminados.");
         await rest.put(Routes.applicationGuildCommands(appId, guildId), { body: [] });
-        console.log("Comandos del servidor eliminados.");
         await rest.put(Routes.applicationGuildCommands(appId, guildId), { body: commands });
         console.log("Slash commands registrados en el servidor.");
       }
     } catch (e) { console.error(e); }
   });
 
-  // ── Prefix commands ───────────────────────────────────────────────────────
   client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
     const PREFIX = "c?";
@@ -448,12 +422,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // INTERACTIONS
-  // ═══════════════════════════════════════════════════════════════════════════
   client.on("interactionCreate", async (interaction) => {
 
-    // ── AUTOCOMPLETE ──────────────────────────────────────────────────────
     if (interaction.isAutocomplete()) {
       const focused = interaction.options.getFocused(true);
       if (focused.name !== "usuario_roblox") { await interaction.respond([]); return; }
@@ -466,7 +436,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return;
     }
 
-    // ── MODALS ────────────────────────────────────────────────────────────
     if (interaction.isModalSubmit()) {
       if (interaction.customId.startsWith("rechazar_modal_")) {
         const pendingKey    = interaction.customId.replace("rechazar_modal_", "");
@@ -488,7 +457,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                 );
               await msg.edit({ embeds: [editedEmbed], components: [new ActionRowBuilder<ButtonBuilder>().addComponents(new ButtonBuilder().setCustomId("noop_a").setLabel("Aceptar").setStyle(ButtonStyle.Success).setDisabled(true), new ButtonBuilder().setCustomId("noop_r").setLabel("Rechazar").setStyle(ButtonStyle.Danger).setDisabled(true))] });
             }
-          } catch { /* no bloqueante */ }
+          } catch { }
         }
         await interaction.reply({ ephemeral: true, content: `<a:Aprobado:1399874076402778122> | Solicitud rechazada correctamente.` });
         return;
@@ -496,7 +465,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return;
     }
 
-    // ── SELECT MENUS ──────────────────────────────────────────────────────
     if (interaction.isStringSelectMenu()) {
       if (interaction.customId === "faq_select") {
         const selected = FAQ_MENUS.find((item) => item.value === interaction.values[0]);
@@ -530,10 +498,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return;
     }
 
-    // ── BUTTONS ───────────────────────────────────────────────────────────
     if (interaction.isButton()) {
 
-      // Lista Staff
       if (interaction.customId.startsWith("lista_staff_")) {
         await interaction.deferUpdate();
         try {
@@ -554,7 +520,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return;
       }
 
-      // Saludar
       if (interaction.customId.startsWith("saludar_")) {
         const targetId = interaction.customId.replace("saludar_", "");
         if (!saludosDados.has(targetId)) saludosDados.set(targetId, new Set());
@@ -565,7 +530,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return;
       }
 
-      // Verificar SI
       if (interaction.customId.startsWith("verificar_si_")) {
         const pendingKey = interaction.customId.replace("verificar_si_", "");
         const pending    = pendingVerifications.get(pendingKey);
@@ -593,7 +557,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return;
       }
 
-      // Verificar NO
       if (interaction.customId.startsWith("verificar_no_")) {
         const pendingKey = interaction.customId.replace("verificar_no_", "");
         const pending    = pendingVerifications.get(pendingKey);
@@ -603,7 +566,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return interaction.update({ content: "Verificación cancelada. Revisá el usuario de Roblox e intentá nuevamente.", embeds: [], components: [] });
       }
 
-      // Solicitar Rol — Aceptar
       if (interaction.customId.startsWith("solicitud_aceptar_")) {
         const pendingKey = interaction.customId.replace("solicitud_aceptar_", "");
         const pending    = pendingSolicitudes.get(pendingKey);
@@ -616,7 +578,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             const m = await guild.members.fetch(pending.requesterId).catch(() => null);
             if (m) await m.roles.add(pending.rolId).catch(() => {});
           }
-        } catch { /* no bloqueante */ }
+        } catch { }
         const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder().setCustomId("noop_a").setLabel("Aceptar").setStyle(ButtonStyle.Success).setDisabled(true),
           new ButtonBuilder().setCustomId("noop_r").setLabel("Rechazar").setStyle(ButtonStyle.Danger).setDisabled(true)
@@ -629,7 +591,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return;
       }
 
-      // Solicitar Rol — Rechazar (modal)
       if (interaction.customId.startsWith("solicitud_rechazar_")) {
         const pendingKey = interaction.customId.replace("solicitud_rechazar_", "");
         const pending    = pendingSolicitudes.get(pendingKey);
@@ -644,9 +605,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return;
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    // SLASH COMMANDS
-    // ══════════════════════════════════════════════════════════════════════
     if (!interaction.isChatInputCommand()) return;
 
     // /calificar-staff
@@ -664,11 +622,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const promedioEstrellas   = await storage.getPromedioEstrellasByStaff(staffUser.id);
         const embed = new EmbedBuilder().setColor(0xffd700).setTitle("<:chik:1473970031489454100> | Calificación Staff — Registrada").setDescription("Gracias por tu calificación.")
           .addFields(
-            { name: "<:Miembro:1473969750139994112> | Usuario",       value: `${interaction.user}`, inline: true },
+            { name: "<:Miembro:1473969750139994112> | Usuario",            value: `${interaction.user}`, inline: true },
             { name: "<:Moderadores:1473981745689923728> | Staff calificado", value: `${staffUser}`, inline: true },
-            { name: "<a:Nerd:1357113815623536791> | Estrellas",        value: "⭐".repeat(estrellas), inline: true },
-            { name: "<a:dancergb:1357113390413123775> | Opinión personal", value: nota, inline: false },
-            { name: "<a:Aprobado:1399874076402778122> | Estadísticas", value: `${totalCalificaciones} calificaciones · Promedio: ${promedioEstrellas}/5`, inline: false }
+            { name: "<a:Nerd:1357113815623536791> | Estrellas",             value: "⭐".repeat(estrellas), inline: true },
+            { name: "<a:dancergb:1357113390413123775> | Opinión personal",  value: nota, inline: false },
+            { name: "<a:Aprobado:1399874076402778122> | Estadísticas",      value: `${totalCalificaciones} calificaciones · Promedio: ${promedioEstrellas}/5`, inline: false }
           )
           .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" }).setTimestamp();
         const canalDestino = await client.channels.fetch(CANAL_DESTINO_CALIFICACIONES);
@@ -805,53 +763,58 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       await interaction.deferReply({ ephemeral: true });
       try {
         const guild = interaction.guild;
-        let robloxName = targetUser.username, robloxUrl = "", robloxThumb = "";
+
+        // Guardar Roblox solo para la DB — no aparece en el embed público
+        let robloxName = targetUser.username, robloxUrl = "";
         if (guild) {
           const targetMember = await guild.members.fetch(targetUser.id).catch(() => null);
           const robloxData   = await getRobloxFromNickname(targetMember?.nickname ?? targetUser.username);
-          if (robloxData) { robloxName = robloxData.name; robloxUrl = `https://www.roblox.com/users/${robloxData.id}/profile`; robloxThumb = robloxData.avatarUrl; }
+          if (robloxData) { robloxName = robloxData.name; robloxUrl = `https://www.roblox.com/users/${robloxData.id}/profile`; }
         }
-
-        // Persistir en SQLite
         insertArresto({ userId: targetUser.id, userTag: targetUser.tag, robloxName, robloxUrl, cargos, oficialId: interaction.user.id, oficialTag: interaction.user.tag, fotoUrl: fotoArresto.url, fecha: fechaHoy() });
 
-        // ── Embed principal de arresto ────────────────────────────────────
+        const gastos        = calcularGastos(cargos);
+        const cargosDisplay = cargos.length > 1024 ? cargos.substring(0, 1021) + "..." : cargos;
+
+        // ── Embed público ─────────────────────────────────────────────────
         const arrestoEmbed = new EmbedBuilder()
           .setColor(0xed4245)
-          .setTitle("<:BAN:1350470431441682514> | Registro de Arresto")
+          .setTitle("<:BAN:1350470431441682514> | Registro de Arresto — Argentina RP")
           .setImage(fotoArresto.url)
+          .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
-            { name: "<:Miembro:1473969750139994112> | Detenido (Discord)",     value: `${targetUser}`, inline: true },
-            { name: "<:roblox:1468196317514956905> | Usuario Roblox",          value: robloxUrl ? `[${robloxName}](${robloxUrl})` : (robloxName || targetUser.username), inline: true },
-            { name: "<:adv:1468761911821602947> | Cargos",                     value: cargos.length > 1024 ? cargos.substring(0, 1021) + "..." : cargos, inline: false },
-            { name: "<:Moderadores:1473981745689923728> | Oficial",            value: `${interaction.user}`, inline: true },
-            { name: "<a:cargando:1456888296381874207> | Fecha",                value: fechaHoy(), inline: true }
+            { name: "<:Miembro:1473969750139994112> | Detenido",              value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
+            { name: "<:Moderadores:1473981745689923728> | Oficial a cargo",   value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
+            { name: "\u200b",                                                  value: "\u200b", inline: true },
+            { name: "<:adv:1468761911821602947> | Cargos aplicados",          value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
+            { name: "<:chik:1473970031489454100> | Gastos totales",           value: gastos.total, inline: true },
+            { name: "<a:cargando:1456888296381874207> | Fecha de arresto",    value: `\`${fechaHoy()}\``, inline: true },
           )
-          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" })
+          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC · Sistema de Arrestos" })
           .setTimestamp();
-        if (robloxThumb) arrestoEmbed.setThumbnail(robloxThumb);
 
         const arrestoChannel = await client.channels.fetch(CANAL_ARRESTOS);
         if (arrestoChannel instanceof TextChannel || arrestoChannel instanceof NewsChannel) {
           await arrestoChannel.send({ embeds: [arrestoEmbed] });
         }
 
-        // ── Log con formato personalizado ─────────────────────────────────
+        // ── Log interno ───────────────────────────────────────────────────
         const logChannel = await client.channels.fetch(CANAL_LOG_REGISTROS);
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
-          const montos = parsearMontos(cargos);
           const logEmbed = new EmbedBuilder()
             .setColor(0xed4245)
-            .setTitle("<:config:1473970137089445909> | Logs Arrestos & Multas")
+            .setTitle("<:config:1473970137089445909> | LOG — Nuevo Arresto Registrado")
+            .setThumbnail(targetUser.displayAvatarURL())
             .setImage(fotoArresto.url)
             .addFields(
-              { name: "<:Miembro:1473969750139994112> | Arrestado",              value: `${targetUser} (${targetUser.tag})`, inline: false },
-              { name: "<a:check1:1468762093741412553> | Oficial",                value: `${interaction.user} (${interaction.user.tag})`, inline: false },
-              { name: "<:Ehh:1457908929504870475> | Cargos Aplicados",           value: cargos.length > 1024 ? cargos.substring(0, 1021) + "..." : cargos, inline: false },
-              { name: "<:chik:1473970031489454100> | Cantidad Dinero",           value: montos, inline: false },
-              { name: "<a:Aprobado:1399874076402778122> | Pruebas Arresto",      value: "*(foto adjunta abajo)*", inline: false }
+              { name: "<:Miembro:1473969750139994112> | Arrestado",       value: `${targetUser}\n\`${targetUser.tag}\` · \`${targetUser.id}\``, inline: false },
+              { name: "<a:check1:1468762093741412553> | Oficial",          value: `${interaction.user}\n\`${interaction.user.tag}\` · \`${interaction.user.id}\``, inline: false },
+              { name: "<:Ehh:1457908929504870475> | Cargos aplicados",    value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
+              { name: "<:chik:1473970031489454100> | Gastos detectados",  value: gastos.detalle, inline: true },
+              { name: "💰 | Total acumulado",                              value: gastos.total, inline: true },
+              { name: "<a:cargando:1456888296381874207> | Fecha y hora",  value: `\`${fechaHoraAhora()}\``, inline: false },
             )
-            .setFooter({ text: "Nuevo arresto o multa han sido registradas." })
+            .setFooter({ text: "Sistema de Registros — Argentina RP · Arresto" })
             .setTimestamp();
           await logChannel.send({ embeds: [logEmbed] });
         }
@@ -865,35 +828,33 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const targetUser = interaction.options.getUser("usuario", false) ?? interaction.user;
       await interaction.deferReply();
       try {
-        const guild = interaction.guild;
-        let robloxName = targetUser.username, robloxUrl = "", robloxThumb = "";
-        if (guild) {
-          const targetMember = await guild.members.fetch(targetUser.id).catch(() => null);
-          const robloxData   = await getRobloxFromNickname(targetMember?.nickname ?? targetUser.username);
-          if (robloxData) { robloxName = robloxData.name; robloxUrl = `https://www.roblox.com/users/${robloxData.id}/profile`; robloxThumb = robloxData.avatarUrl; }
-        }
-
         const historial     = getArrestosByUser(targetUser.id);
         const totalArrestos = historial.length;
 
+        // Calcular gastos acumulados de todos los arrestos del usuario
+        const todosLosCargos    = historial.map((a) => a.cargos).join(" ");
+        const gastosAcumulados  = calcularGastos(todosLosCargos);
+
         const registroEmbed = new EmbedBuilder()
           .setColor(0x5865f2)
-          .setTitle("<:BAN:1350470431441682514> | Historial de Arrestos")
+          .setTitle("<:BAN:1350470431441682514> | Historial de Arrestos — Argentina RP")
+          .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
-            { name: "<:Miembro:1473969750139994112> | Usuario Discord",        value: `${targetUser}`, inline: true },
-            { name: "<:roblox:1468196317514956905> | Usuario Roblox",          value: robloxUrl ? `[${robloxName}](${robloxUrl})` : (robloxName || targetUser.username), inline: true },
-            { name: "<a:Nerd:1357113815623536791> | Total de arrestos",        value: String(totalArrestos), inline: false }
+            { name: "<:Miembro:1473969750139994112> | Usuario",            value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
+            { name: "<a:Nerd:1357113815623536791> | Total arrestos",       value: `\`${totalArrestos}\``, inline: true },
+            { name: "\u200b",                                               value: "\u200b", inline: true },
+            { name: "💰 | Gastos totales acumulados",                      value: gastosAcumulados.total, inline: true },
+            { name: "<a:cargando:1456888296381874207> | Última consulta",  value: `\`${fechaHoraAhora()}\``, inline: true },
           )
-          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" })
+          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC · Sistema de Registros" })
           .setTimestamp();
-        if (robloxThumb) registroEmbed.setThumbnail(robloxThumb);
 
         const components: any[] = [];
         if (historial.length > 0) {
           const ultimos = historial.slice(0, 25);
           const selectCargos = new StringSelectMenuBuilder()
             .setCustomId(`arrestos_cargos_${targetUser.id}`)
-            .setPlaceholder("Cargos Mayores — Ver historial")
+            .setPlaceholder("📋 Historial — Seleccioná un arresto para ver sus cargos")
             .addOptions(ultimos.map((a) => ({
               label:       `Arresto #${a.id} — ${a.fecha}`,
               value:       `cargo_${a.id}`,
@@ -919,14 +880,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           await logChannel.send({ embeds: [new EmbedBuilder().setColor(0xff6600)
             .setTitle("<a:Reprobado:1399874121055076372> | LOG — Arrestos Eliminados")
+            .setThumbnail(targetUser.displayAvatarURL())
             .addFields(
-              { name: "Usuario",          value: `${targetUser} (${targetUser.id})`, inline: true },
-              { name: "Arrestos borrados", value: String(cantidadBorrada),           inline: true },
-              { name: "Motivo",           value: motivo,                             inline: false },
-              { name: "Ejecutado por",    value: `${interaction.user}`,              inline: true },
-              { name: "Fecha",            value: fechaHoraAhora(),                   inline: true }
+              { name: "<:Miembro:1473969750139994112> | Usuario",            value: `${targetUser}\n\`${targetUser.tag}\` · \`${targetUser.id}\``, inline: false },
+              { name: "<:BAN:1350470431441682514> | Arrestos borrados",       value: `\`${cantidadBorrada}\``, inline: true },
+              { name: "<:adv:1468761911821602947> | Motivo",                  value: motivo, inline: false },
+              { name: "<:Moderadores:1473981745689923728> | Ejecutado por",   value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
+              { name: "<a:cargando:1456888296381874207> | Fecha",             value: `\`${fechaHoraAhora()}\``, inline: true },
             )
-            .setFooter({ text: "Sistema de Registros — Argentina RP" }).setTimestamp()] });
+            .setFooter({ text: "Sistema de Registros — Argentina RP · Eliminación de Arrestos" }).setTimestamp()] });
         }
         return interaction.editReply({ content: `<a:Aprobado:1399874076402778122> | Se eliminaron **${cantidadBorrada}** arresto(s) de ${targetUser} de la base de datos.\n**Motivo:** ${motivo}` });
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
@@ -941,53 +903,58 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       await interaction.deferReply({ ephemeral: true });
       try {
         const guild = interaction.guild;
-        let robloxName = targetUser.username, robloxUrl = "", robloxThumb = "";
+
+        // Guardar Roblox solo para la DB — no aparece en el embed público
+        let robloxName = targetUser.username, robloxUrl = "";
         if (guild) {
           const targetMember = await guild.members.fetch(targetUser.id).catch(() => null);
           const robloxData   = await getRobloxFromNickname(targetMember?.nickname ?? targetUser.username);
-          if (robloxData) { robloxName = robloxData.name; robloxUrl = `https://www.roblox.com/users/${robloxData.id}/profile`; robloxThumb = robloxData.avatarUrl; }
+          if (robloxData) { robloxName = robloxData.name; robloxUrl = `https://www.roblox.com/users/${robloxData.id}/profile`; }
         }
-
-        // Persistir en SQLite
         insertMulta({ userId: targetUser.id, userTag: targetUser.tag, robloxName, robloxUrl, cargos, oficialId: interaction.user.id, oficialTag: interaction.user.tag, fotoUrl: fotoMulta.url, fecha: fechaHoy() });
 
-        // ── Embed principal de multa ───────────────────────────────────────
+        const gastos        = calcularGastos(cargos);
+        const cargosDisplay = cargos.length > 1024 ? cargos.substring(0, 1021) + "..." : cargos;
+
+        // ── Embed público ─────────────────────────────────────────────────
         const multaEmbed = new EmbedBuilder()
           .setColor(0xff6600)
-          .setTitle("<:adv:1468761911821602947> | Registro de Multa")
+          .setTitle("<:adv:1468761911821602947> | Registro de Multa — Argentina RP")
           .setImage(fotoMulta.url)
+          .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
-            { name: "<:Miembro:1473969750139994112> | Multado (Discord)",       value: `${targetUser}`, inline: true },
-            { name: "<:roblox:1468196317514956905> | Usuario Roblox",           value: robloxUrl ? `[${robloxName}](${robloxUrl})` : (robloxName || targetUser.username), inline: true },
-            { name: "<:adv:1468761911821602947> | Cargos / Infracción",         value: cargos.length > 1024 ? cargos.substring(0, 1021) + "..." : cargos, inline: false },
-            { name: "<:Moderadores:1473981745689923728> | Oficial",             value: `${interaction.user}`, inline: true },
-            { name: "<a:cargando:1456888296381874207> | Fecha",                 value: fechaHoy(), inline: true }
+            { name: "<:Miembro:1473969750139994112> | Multado",              value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
+            { name: "<:Moderadores:1473981745689923728> | Oficial a cargo",  value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
+            { name: "\u200b",                                                 value: "\u200b", inline: true },
+            { name: "<:adv:1468761911821602947> | Cargos / Infracción",      value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
+            { name: "<:chik:1473970031489454100> | Gastos totales",          value: gastos.total, inline: true },
+            { name: "<a:cargando:1456888296381874207> | Fecha de multa",     value: `\`${fechaHoy()}\``, inline: true },
           )
-          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" })
+          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC · Sistema de Multas" })
           .setTimestamp();
-        if (robloxThumb) multaEmbed.setThumbnail(robloxThumb);
 
         const multaChannel = await client.channels.fetch(CANAL_MULTAS);
         if (multaChannel instanceof TextChannel || multaChannel instanceof NewsChannel) {
           await multaChannel.send({ embeds: [multaEmbed] });
         }
 
-        // ── Log con formato personalizado ─────────────────────────────────
+        // ── Log interno ───────────────────────────────────────────────────
         const logChannel = await client.channels.fetch(CANAL_LOG_REGISTROS);
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
-          const montos = parsearMontos(cargos);
           const logEmbed = new EmbedBuilder()
             .setColor(0xff6600)
-            .setTitle("<:config:1473970137089445909> | Logs Arrestos & Multas")
+            .setTitle("<:config:1473970137089445909> | LOG — Nueva Multa Registrada")
+            .setThumbnail(targetUser.displayAvatarURL())
             .setImage(fotoMulta.url)
             .addFields(
-              { name: "<:Miembro:1473969750139994112> | Multado",               value: `${targetUser} (${targetUser.tag})`, inline: false },
-              { name: "<a:check1:1468762093741412553> | Oficial",               value: `${interaction.user} (${interaction.user.tag})`, inline: false },
-              { name: "<:Ehh:1457908929504870475> | Cargos Aplicados",          value: cargos.length > 1024 ? cargos.substring(0, 1021) + "..." : cargos, inline: false },
-              { name: "<:chik:1473970031489454100> | Cantidad Dinero",          value: montos, inline: false },
-              { name: "<a:Aprobado:1399874076402778122> | Pruebas Multa",       value: "*(foto adjunta abajo)*", inline: false }
+              { name: "<:Miembro:1473969750139994112> | Multado",         value: `${targetUser}\n\`${targetUser.tag}\` · \`${targetUser.id}\``, inline: false },
+              { name: "<a:check1:1468762093741412553> | Oficial",          value: `${interaction.user}\n\`${interaction.user.tag}\` · \`${interaction.user.id}\``, inline: false },
+              { name: "<:Ehh:1457908929504870475> | Cargos aplicados",    value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
+              { name: "<:chik:1473970031489454100> | Gastos detectados",  value: gastos.detalle, inline: true },
+              { name: "💰 | Total acumulado",                              value: gastos.total, inline: true },
+              { name: "<a:cargando:1456888296381874207> | Fecha y hora",  value: `\`${fechaHoraAhora()}\``, inline: false },
             )
-            .setFooter({ text: "Nuevo arresto o multa han sido registradas." })
+            .setFooter({ text: "Sistema de Registros — Argentina RP · Multa" })
             .setTimestamp();
           await logChannel.send({ embeds: [logEmbed] });
         }
@@ -1010,14 +977,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           await logChannel.send({ embeds: [new EmbedBuilder().setColor(0xff6600)
             .setTitle("<a:Reprobado:1399874121055076372> | LOG — Multas Eliminadas")
+            .setThumbnail(targetUser.displayAvatarURL())
             .addFields(
-              { name: "Usuario",         value: `${targetUser} (${targetUser.id})`, inline: true },
-              { name: "Multas borradas", value: String(cantidadBorrada),            inline: true },
-              { name: "Motivo",          value: motivo,                             inline: false },
-              { name: "Ejecutado por",   value: `${interaction.user}`,              inline: true },
-              { name: "Fecha",           value: fechaHoraAhora(),                   inline: true }
+              { name: "<:Miembro:1473969750139994112> | Usuario",           value: `${targetUser}\n\`${targetUser.tag}\` · \`${targetUser.id}\``, inline: false },
+              { name: "<:adv:1468761911821602947> | Multas borradas",       value: `\`${cantidadBorrada}\``, inline: true },
+              { name: "<:adv:1468761911821602947> | Motivo",                value: motivo, inline: false },
+              { name: "<:Moderadores:1473981745689923728> | Ejecutado por", value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
+              { name: "<a:cargando:1456888296381874207> | Fecha",           value: `\`${fechaHoraAhora()}\``, inline: true },
             )
-            .setFooter({ text: "Sistema de Registros — Argentina RP" }).setTimestamp()] });
+            .setFooter({ text: "Sistema de Registros — Argentina RP · Eliminación de Multas" }).setTimestamp()] });
         }
         return interaction.editReply({ content: `<a:Aprobado:1399874076402778122> | Se eliminaron **${cantidadBorrada}** multa(s) de ${targetUser} de la base de datos.\n**Motivo:** ${motivo}` });
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
@@ -1034,28 +1002,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       try {
         const guild = interaction.guild;
         if (!guild) return interaction.editReply({ content: "Error al obtener el servidor." });
-
         const member = await guild.members.fetch(interaction.user.id).catch(() => null);
         if (!member) return interaction.editReply({ content: "No se pudo obtener tu información del servidor." });
-
         const trabajosActuales = ROLES_TRABAJOS_PRIMARIOS.filter((r) => member.roles.cache.has(r.id)).length;
         const esVip = ROLES_VIP_TRABAJOS.some((r) => member.roles.cache.has(r));
         const limiteTrabajos = esVip ? 3 : 2;
-
         const pendingKey = `solicitud_${interaction.user.id}_${Date.now()}`;
         pendingSolicitudes.set(pendingKey, {
-          requesterId:      interaction.user.id,
-          rolId,
-          rolName:          rolDisplay,
-          motivo,
-          pruebasUrl:       pruebas.url,
-          requesterTag:     interaction.user.tag,
-          requesterAvatar:  interaction.user.displayAvatarURL(),
-          trabajosActuales,
-          limiteTrabajos,
+          requesterId: interaction.user.id, rolId, rolName: rolDisplay, motivo,
+          pruebasUrl: pruebas.url, requesterTag: interaction.user.tag,
+          requesterAvatar: interaction.user.displayAvatarURL(), trabajosActuales, limiteTrabajos,
         });
         setTimeout(() => pendingSolicitudes.delete(pendingKey), 24 * 60 * 60 * 1000);
-
         const trabajosTexto = `${trabajosActuales}/${limiteTrabajos} trabajos primarios`;
         const solicitudEmbed = new EmbedBuilder()
           .setColor(0x5865f2)
@@ -1063,14 +1021,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           .setThumbnail(interaction.user.displayAvatarURL())
           .setImage(pruebas.url)
           .addFields(
-            { name: "<:Miembro:1473969750139994112> | Miembro",                   value: `<@${interaction.user.id}>`, inline: true },
-            { name: "<a:Nerd:1357113815623536791> | Rol solicitado",              value: `<@&${rolId}>`, inline: true },
-            { name: "<:discord:1468196272199569410> | Trabajos primarios",        value: trabajosTexto, inline: false },
-            { name: "<:adv:1468761911821602947> | Motivo",                        value: motivo, inline: false },
-            { name: "<a:check1:1468762093741412553> | Pruebas",                   value: "*(foto adjunta abajo)*", inline: false }
+            { name: "<:Miembro:1473969750139994112> | Miembro",             value: `<@${interaction.user.id}>`, inline: true },
+            { name: "<a:Nerd:1357113815623536791> | Rol solicitado",        value: `<@&${rolId}>`, inline: true },
+            { name: "<:discord:1468196272199569410> | Trabajos primarios",  value: trabajosTexto, inline: false },
+            { name: "<:adv:1468761911821602947> | Motivo",                  value: motivo, inline: false },
+            { name: "<a:check1:1468762093741412553> | Pruebas",             value: "*(foto adjunta abajo)*", inline: false }
           )
           .setFooter({ text: `Solicitud enviada · ${fechaHoraAhora()}` });
-
         const solicitudChannel = await client.channels.fetch(CANAL_SOLICITAR_ROL);
         if (solicitudChannel instanceof TextChannel || solicitudChannel instanceof NewsChannel) {
           const msg = await solicitudChannel.send({
@@ -1096,36 +1053,27 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (!guild) return interaction.editReply({ content: "Error al obtener el servidor." });
         const member = await guild.members.fetch(targetUser.id).catch(() => null);
         if (!member) return interaction.editReply({ content: "<:equiz:1468761969518706708> | No se encontró al usuario en el servidor." });
-
         const esVip = ROLES_VIP_TRABAJOS.some((r) => member.roles.cache.has(r));
         const primActuales = ROLES_TRABAJOS_PRIMARIOS.filter((r) => member.roles.cache.has(r.id));
         const limitePrim   = esVip ? 3 : 2;
-        const listaPrim    = primActuales.length > 0
-          ? primActuales.map((r) => `${r.emoji}|| **${r.nombre}** (<@&${r.id}>)`).join("\n")
-          : "Sin trabajos primarios.";
-        const secActuales = ROLES_TRABAJOS_SECUNDARIOS.filter((r) => member.roles.cache.has(r));
-        const limiteSec   = esVip ? 2 : 1;
-        const listaSec    = secActuales.length > 0
-          ? secActuales.map((r) => `<@&${r}>`).join("\n")
-          : "Sin trabajos secundarios.";
-
+        const listaPrim    = primActuales.length > 0 ? primActuales.map((r) => `${r.emoji}|| **${r.nombre}** (<@&${r.id}>)`).join("\n") : "Sin trabajos primarios.";
+        const secActuales  = ROLES_TRABAJOS_SECUNDARIOS.filter((r) => member.roles.cache.has(r));
+        const limiteSec    = esVip ? 2 : 1;
+        const listaSec     = secActuales.length > 0 ? secActuales.map((r) => `<@&${r}>`).join("\n") : "Sin trabajos secundarios.";
         const embed = new EmbedBuilder()
-          .setColor(0x5865f2)
-          .setTitle("<:Miembro:1473969750139994112> | Info Discord")
-          .setThumbnail(targetUser.displayAvatarURL())
+          .setColor(0x5865f2).setTitle("<:Miembro:1473969750139994112> | Info Discord").setThumbnail(targetUser.displayAvatarURL())
           .addFields(
-            { name: "<:Miembro:1473969750139994112> | Usuario",                          value: `${targetUser}`, inline: true },
-            { name: "<a:check1:1468762093741412553> | VIP",                              value: esVip ? "<a:Aprobado:1399874076402778122> | Sí" : "<a:Reprobado:1399874121055076372> | No", inline: true },
+            { name: "<:Miembro:1473969750139994112> | Usuario",                           value: `${targetUser}`, inline: true },
+            { name: "<a:check1:1468762093741412553> | VIP",                               value: esVip ? "<a:Aprobado:1399874076402778122> | Sí" : "<a:Reprobado:1399874121055076372> | No", inline: true },
             { name: `<:uno:1468199771532427264> | Trabajos primarios (${primActuales.length}/${limitePrim})`, value: listaPrim, inline: false },
             { name: `<:dos:1468199817011400838> | Trabajos secundarios (${secActuales.length}/${limiteSec})`, value: listaSec, inline: false },
           )
-          .setFooter({ text: `Consultado por ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
-          .setTimestamp();
+          .setFooter({ text: `Consultado por ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() }).setTimestamp();
         return interaction.editReply({ embeds: [embed] });
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
-    // ── /eliminar-trabajo ────────────────────────────────────────────────
+    // ── /eliminar-trabajo ─────────────────────────────────────────────────
     if (interaction.commandName === "eliminar-trabajo") {
       if (!hasStaffSolicitudesRole(interaction.member) && !interaction.memberPermissions?.has("ManageRoles")) {
         return interaction.reply({ content: "<:equiz:1468761969518706708> | No tenés los permisos necesarios para usar este comando.", ephemeral: true });
@@ -1144,25 +1092,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           return interaction.editReply({ content: `<:adv:1468761911821602947> | El usuario ${targetUser} no tiene el trabajo **${rolDisplay}**.` });
         }
         await targetMember.roles.remove(rolId);
-
         const embed = new EmbedBuilder()
-          .setColor(0xed4245)
-          .setTitle("<a:Reprobado:1399874121055076372> | Trabajo Eliminado")
-          .setThumbnail(targetUser.displayAvatarURL())
+          .setColor(0xed4245).setTitle("<a:Reprobado:1399874121055076372> | Trabajo Eliminado").setThumbnail(targetUser.displayAvatarURL())
           .addFields(
-            { name: "<:Miembro:1473969750139994112> | Usuario",              value: `${targetUser}`, inline: true },
-            { name: "<:config:1473970137089445909> | Trabajo eliminado",     value: `<@&${rolId}>`, inline: true },
-            { name: "<:Moderadores:1473981745689923728> | Ejecutado por",    value: `${interaction.user}`, inline: true },
-            { name: "<a:cargando:1456888296381874207> | Fecha",              value: fechaHoraAhora(), inline: true },
+            { name: "<:Miembro:1473969750139994112> | Usuario",           value: `${targetUser}`, inline: true },
+            { name: "<:config:1473970137089445909> | Trabajo eliminado",  value: `<@&${rolId}>`, inline: true },
+            { name: "<:Moderadores:1473981745689923728> | Ejecutado por", value: `${interaction.user}`, inline: true },
+            { name: "<a:cargando:1456888296381874207> | Fecha",           value: fechaHoraAhora(), inline: true },
           )
-          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" })
-          .setTimestamp();
-
+          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" }).setTimestamp();
         const canal = await client.channels.fetch(CANAL_SOLICITAR_ROL);
         if (canal instanceof TextChannel || canal instanceof NewsChannel) {
           await canal.send({ embeds: [embed] });
         }
-
         return interaction.editReply({ content: `<a:Aprobado:1399874076402778122> | El trabajo <@&${rolId}> fue eliminado del perfil de ${targetUser} correctamente.` });
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
