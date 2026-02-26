@@ -335,10 +335,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const rest = new REST({ version: "10" }).setToken(DISCORD_TOKEN);
       if (client.user?.id) {
-        await rest.put(Routes.applicationCommands(client.user.id), { body: [] });
-        console.log("Comandos anteriores eliminados.");
-        await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
-        console.log("Slash commands registrados.");
+        const appId   = client.user.id;
+        const guildId = "1349870169056350270";
+
+        // Limpia comandos globales (los viejos como /añadir-rol)
+        await rest.put(Routes.applicationCommands(appId), { body: [] });
+        console.log("Comandos globales eliminados.");
+
+        // Limpia comandos del servidor específico
+        await rest.put(Routes.applicationGuildCommands(appId, guildId), { body: [] });
+        console.log("Comandos del servidor eliminados.");
+
+        // Registra los nuevos en el servidor (instantáneo)
+        await rest.put(Routes.applicationGuildCommands(appId, guildId), { body: commands });
+        console.log("Slash commands registrados en el servidor.");
       }
     } catch (e) { console.error(e); }
   });
