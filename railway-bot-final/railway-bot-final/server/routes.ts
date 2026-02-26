@@ -334,7 +334,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     tick(); setInterval(tick, 15_000);
     try {
       const rest = new REST({ version: "10" }).setToken(DISCORD_TOKEN);
-      if (client.user?.id) { await rest.put(Routes.applicationCommands(client.user.id), { body: commands }); console.log("Slash commands registrados."); }
+      if (client.user?.id) {
+        await rest.put(Routes.applicationCommands(client.user.id), { body: [] });
+        console.log("Comandos anteriores eliminados.");
+        await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
+        console.log("Slash commands registrados.");
+      }
     } catch (e) { console.error(e); }
   });
 
