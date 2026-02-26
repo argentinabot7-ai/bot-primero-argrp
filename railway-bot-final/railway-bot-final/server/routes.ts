@@ -990,6 +990,43 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
+    // ── /info-discord ─────────────────────────────────────────────────────
+    if (interaction.commandName === "info-discord") {
+      const targetUser = interaction.options.getUser("usuario", false) ?? interaction.user;
+      await interaction.deferReply({ ephemeral: true });
+      try {
+        const guild = interaction.guild;
+        if (!guild) return interaction.editReply({ content: "Error al obtener el servidor." });
+        const member = await guild.members.fetch(targetUser.id).catch(() => null);
+        if (!member) return interaction.editReply({ content: "<:equiz:1468761969518706708> | No se encontró al usuario en el servidor." });
+        const esVip = ROLES_VIP_TRABAJOS.some((r) => member.roles.cache.has(r));
+        const primActuales = ROLES_TRABAJOS_PRIMARIOS.filter((r) => member.roles.cache.has(r.id));
+        const limitePrim   = esVip ? 3 : 2;
+        const listaPrim    = primActuales.length > 0
+          ? primActuales.map((r) => `${r.emoji}|| **${r.nombre}** (<@&${r.id}>)`).join("\n")
+          : "Sin trabajos primarios.";
+        const secActuales = ROLES_TRABAJOS_SECUNDARIOS.filter((r) => member.roles.cache.has(r));
+        const limiteSec   = esVip ? 2 : 1;
+        const listaSec    = secActuales.length > 0
+          ? secActuales.map((r) => `<@&${r}>`).join("\n")
+          : "Sin trabajos secundarios.";
+        const embed = new EmbedBuilder()
+          .setColor(0x5865f2)
+          .setTitle("<:Miembro:1473969750139994112> | Info Discord")
+          .setThumbnail(targetUser.displayAvatarURL())
+          .addFields(
+            { name: "<:discord:1468196272199569410> | Usuario", value: `${targetUser}`, inline: true },
+            { name: "<a:Nerd:1357113815623536791> | VIP", value: esVip ? "✅ Sí" : "❌ No", inline: true },
+            { name: "\u200B", value: "\u200B", inline: false },
+            { name: `<:config:1473970137089445909> | Trabajos primarios (${primActuales.length}/${limitePrim})`, value: listaPrim, inline: false },
+            { name: `<a:check1:1468762093741412553> | Trabajos secundarios (${secActuales.length}/${limiteSec})`, value: listaSec, inline: false },
+          )
+          .setFooter({ text: `Consultado por ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+          .setTimestamp();
+        return interaction.editReply({ embeds: [embed] });
+      } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
+    }
+
     // ── /eliminar-trabajo ────────────────────────────────────────────────
     if (interaction.commandName === "eliminar-trabajo") {
       if (!hasStaffSolicitudesRole(interaction.member) && !interaction.memberPermissions?.has("ManageRoles")) {
