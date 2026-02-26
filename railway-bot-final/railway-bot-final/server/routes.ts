@@ -100,11 +100,17 @@ const pendingVerifications = new Map<string, {
 const saludosDados = new Map<string, Set<string>>();
 
 const pendingSolicitudes = new Map<string, {
-  requesterId: string;
-  rolId:       string;
-  rolName:     string;
-  motivo:      string;
-  pruebasUrl:  string;
+  requesterId:      string;
+  rolId:            string;
+  rolName:          string;
+  motivo:           string;
+  pruebasUrl:       string;
+  requesterTag:     string;
+  requesterAvatar:  string;
+  trabajosActuales: number;
+  limiteTrabajos:   number;
+  messageId?:       string;
+  channelId?:       string;
 }>();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -213,20 +219,27 @@ function isTextChannel(ch: any): ch is TextChannel | DMChannel | NewsChannel | T
   return ch instanceof TextChannel || ch instanceof DMChannel || ch instanceof NewsChannel || ch instanceof ThreadChannel;
 }
 
-// ── Roles disponibles para /solicitar-rol ─────────────────────────────────────
-const ROLES_DISPONIBLES = [
-  { name: "Gendarmería Nacional",      value: "role_gendarmeria"    },
-  { name: "Policía Federal Argentina", value: "role_pfa"            },
-  { name: "Policía de la Ciudad",      value: "role_policia_ciudad" },
-  { name: "Brigada Especial Halcón",   value: "role_halcon"         },
-  { name: "SAME",                      value: "role_same"           },
-  { name: "Bomberos de la Ciudad",     value: "role_bomberos"       },
-  { name: "Automóvil Club Argentino",  value: "role_aca"            },
-  { name: "Corte Suprema de Justicia", value: "role_corte"          },
-  { name: "Seguridad Privada",         value: "role_seg_privada"    },
-  { name: "Empresa de Eventos",        value: "role_eventos"        },
-  { name: "Noticiero",                 value: "role_noticiero"      },
+// ── Roles de trabajos primarios ───────────────────────────────────────────────
+const ROLES_TRABAJOS_PRIMARIOS: { id: string; nombre: string; emoji: string }[] = [
+  { id: "1436174608339566777", nombre: "Juez - Fiscal",                  emoji: "💼" },
+  { id: "1349870169337368664", nombre: "Abogado",                        emoji: "💼" },
+  { id: "1353392018201509960", nombre: "Brigada Especial de Halcón",     emoji: "🦅" },
+  { id: "1349870169362661440", nombre: "Policía Federal Argentina",      emoji: "🚓" },
+  { id: "1387584047685046312", nombre: "Policía de la Ciudad",           emoji: "🚓" },
+  { id: "1349870169362661439", nombre: "Gendarmeria Nacional Argentina", emoji: "🪖" },
+  { id: "1349870169337368667", nombre: "SAME",                           emoji: "🚑" },
+  { id: "1349870169337368666", nombre: "Bomberos de la Ciudad",          emoji: "🚒" },
+  { id: "1355583720622657676", nombre: "Automovil Club Argentino",       emoji: "🚧" },
 ];
+
+// Roles VIP que permiten hasta 4 trabajos primarios (en vez de 2)
+const ROLES_VIP_TRABAJOS = ["1350294370766557254", "1350294391130165321", "1356372171751948288"];
+
+// ── Roles disponibles para /solicitar-rol ─────────────────────────────────────
+const ROLES_DISPONIBLES = ROLES_TRABAJOS_PRIMARIOS.map((r) => ({
+  name:  r.emoji + "|| " + r.nombre,
+  value: r.id,
+}));
 
 // ── FAQ ───────────────────────────────────────────────────────────────────────
 const FAQ_MENUS = [
@@ -319,6 +332,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       .addStringOption((o) => o.setName("nombre-rol").setDescription("Rol que deseas solicitar.").setRequired(true).addChoices(...ROLES_DISPONIBLES.map((r) => ({ name: r.name, value: r.value }))))
       .addStringOption((o) => o.setName("motivo").setDescription("Motivo de tu solicitud.").setRequired(true).setMaxLength(500))
       .addAttachmentOption((o) => o.setName("pruebas").setDescription("Foto con las pruebas de tu solicitud.").setRequired(true)),
+
+    new SlashCommandBuilder().setName("estadisticas").setDescription("Muestra las calificaciones de todos los moderadores del staff."),
   ];
 
   // ── Ready ─────────────────────────────────────────────────────────────────
@@ -430,18 +445,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     // ── MODALS ────────────────────────────────────────────────────────────
     if (interaction.isModalSubmit()) {
       if (interaction.customId.startsWith("rechazar_modal_")) {
-        const pendingKey = interaction.customId.replace("rechazar_modal_", "");
-        const pending    = pendingSolicitudes.get(pendingKey);
+        const pendingKey    = interaction.customId.replace("rechazar_modal_", "");
+        const pending       = pendingSolicitudes.get(pendingKey);
         if (!pending) return interaction.reply({ content: "Esta solicitud ya expiró.", ephemeral: true });
         if (!hasStaffSolicitudesRole(interaction.member)) return interaction.reply({ content: "<:equiz:1468761969518706708> | No tenés los permisos para rechazar solicitudes.", ephemeral: true });
         const motivoRechazo = interaction.fields.getTextInputValue("motivo_rechazo");
         pendingSolicitudes.delete(pendingKey);
-        const rolNombre = ROLES_DISPONIBLES.find((r) => r.value === pending.rolId)?.name ?? pending.rolName;
-        const rechazadoEmbed = new EmbedBuilder().setColor(0xed4245)
-          .setTitle("<a:Reprobado:1399874121055076372> | La solicitud ha sido denegada.")
-          .setDescription(`<:Ehh:1457908929504870475> | Su solicitud de solicitar el rol **${rolNombre}** ha sido rechazada por el Moderador **${interaction.user.tag}** por el siguiente motivo: ${motivoRechazo}`)
-          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" }).setTimestamp();
-        await interaction.reply({ content: `<@${pending.requesterId}>`, embeds: [rechazadoEmbed] });
+        const rolNombreRaw  = ROLES_TRABAJOS_PRIMARIOS.find((r) => r.id === pending.rolId);
+        const rolDisplay    = rolNombreRaw ? `<@&${rolNombreRaw.id}>` : pending.rolName;
+        const trabajosInfo  = `${pending.trabajosActuales}/${pending.limiteTrabajos} trabajos primarios`;
+        // Editar el embed original si tenemos los IDs
+        if (pending.messageId && pending.channelId) {
+          try {
+            const ch = await client.channels.fetch(pending.channelId);
+            if (ch instanceof TextChannel || ch instanceof NewsChannel) {
+              const msg = await ch.messages.fetch(pending.messageId);
+              const editedEmbed = EmbedBuilder.from(msg.embeds[0])
+                .setColor(0xed4245)
+                .addFields({ name: "<a:Reprobado:1399874121055076372> | Rechazado por", value: `${interaction.user} (${interaction.user.tag})`, inline: true })
+                .addFields({ name: "<:adv:1468761911821602947> | Motivo", value: motivoRechazo, inline: false });
+              await msg.edit({ embeds: [editedEmbed], components: [new ActionRowBuilder<ButtonBuilder>().addComponents(new ButtonBuilder().setCustomId("noop_a").setLabel("Aceptar").setStyle(ButtonStyle.Success).setDisabled(true), new ButtonBuilder().setCustomId("noop_r").setLabel("Rechazar").setStyle(ButtonStyle.Danger).setDisabled(true))] });
+            }
+          } catch { /* no bloqueante */ }
+        }
+        await interaction.reply({ ephemeral: true, content: `<a:Aprobado:1399874076402778122> | Solicitud rechazada correctamente.` });
         return;
       }
       return;
@@ -562,17 +589,25 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (!pending) return interaction.reply({ content: "Esta solicitud ya fue procesada o expiró.", ephemeral: true });
         if (!hasStaffSolicitudesRole(interaction.member)) return interaction.reply({ content: "<:equiz:1468761969518706708> | No tenés los permisos para aceptar solicitudes.", ephemeral: true });
         pendingSolicitudes.delete(pendingKey);
-        const rolNombre = ROLES_DISPONIBLES.find((r) => r.value === pending.rolId)?.name ?? pending.rolName;
-        await interaction.update({ components: [new ActionRowBuilder<ButtonBuilder>().addComponents(new ButtonBuilder().setCustomId("noop_a").setLabel("Aceptar").setStyle(ButtonStyle.Success).setDisabled(true), new ButtonBuilder().setCustomId("noop_r").setLabel("Rechazar").setStyle(ButtonStyle.Danger).setDisabled(true))] });
+        // Agregar el rol por ID directamente
         try {
           const guild = interaction.guild;
           if (guild) {
             const m = await guild.members.fetch(pending.requesterId).catch(() => null);
-            if (m) { const rolEncontrado = guild.roles.cache.find((r) => r.name.toLowerCase() === rolNombre.toLowerCase()); if (rolEncontrado) await m.roles.add(rolEncontrado.id).catch(() => {}); }
+            if (m) await m.roles.add(pending.rolId).catch(() => {});
           }
         } catch { /* no bloqueante */ }
-        const aceptadoEmbed = new EmbedBuilder().setColor(0x00c851).setTitle("<a:Aprobado:1399874076402778122> | La solicitud ha sido aprobada.").setDescription(`<:Miembro:1473969750139994112> | La solicitud de <@${pending.requesterId}> ha sido aceptada por el Moderador **${interaction.user.tag}** exitosamente, el rol **${rolNombre}** ha sido agregado a su perfil.`).setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" }).setTimestamp();
-        await interaction.followUp({ content: `<@${pending.requesterId}>`, embeds: [aceptadoEmbed] });
+        // Editar el embed original agregando "Aceptado por"
+        const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder().setCustomId("noop_a").setLabel("Aceptar").setStyle(ButtonStyle.Success).setDisabled(true),
+          new ButtonBuilder().setCustomId("noop_r").setLabel("Rechazar").setStyle(ButtonStyle.Danger).setDisabled(true)
+        );
+        const editedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
+          .setColor(0x00c851)
+          .addFields({ name: "<a:Aprobado:1399874076402778122> | Aceptado por", value: `${interaction.user} (${interaction.user.tag})`, inline: false });
+        await interaction.update({ embeds: [editedEmbed], components: [disabledRow] });
+        // Mencionar al rol en el canal
+        await interaction.followUp({ content: `<@&${pending.rolId}> | <@${pending.requesterId}> tu solicitud fue aprobada por **${interaction.user.tag}**.` });
         return;
       }
 
@@ -864,25 +899,101 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     // ── /solicitar-rol ────────────────────────────────────────────────────
     if (interaction.commandName === "solicitar-rol") {
-      const rolValue  = interaction.options.getString("nombre-rol", true);
-      const motivo    = interaction.options.getString("motivo", true);
-      const pruebas   = interaction.options.getAttachment("pruebas", true);
-      const rolNombre = ROLES_DISPONIBLES.find((r) => r.value === rolValue)?.name ?? rolValue;
+      const rolId    = interaction.options.getString("nombre-rol", true);
+      const motivo   = interaction.options.getString("motivo", true);
+      const pruebas  = interaction.options.getAttachment("pruebas", true);
+      const rolInfo  = ROLES_TRABAJOS_PRIMARIOS.find((r) => r.id === rolId);
+      const rolDisplay = rolInfo ? `${rolInfo.emoji}|| ${rolInfo.nombre}` : rolId;
       await interaction.deferReply({ ephemeral: true });
       try {
+        const guild = interaction.guild;
+        if (!guild) return interaction.editReply({ content: "Error al obtener el servidor." });
+
+        // Calcular trabajos primarios actuales del usuario
+        const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+        if (!member) return interaction.editReply({ content: "No se pudo obtener tu información del servidor." });
+
+        const trabajosActuales = ROLES_TRABAJOS_PRIMARIOS.filter((r) => member.roles.cache.has(r.id)).length;
+        const esVip = ROLES_VIP_TRABAJOS.some((r) => member.roles.cache.has(r));
+        const limiteTrabajos = esVip ? 4 : 2;
+
         const pendingKey = `solicitud_${interaction.user.id}_${Date.now()}`;
-        pendingSolicitudes.set(pendingKey, { requesterId: interaction.user.id, rolId: rolValue, rolName: rolNombre, motivo, pruebasUrl: pruebas.url });
+        pendingSolicitudes.set(pendingKey, {
+          requesterId:      interaction.user.id,
+          rolId,
+          rolName:          rolDisplay,
+          motivo,
+          pruebasUrl:       pruebas.url,
+          requesterTag:     interaction.user.tag,
+          requesterAvatar:  interaction.user.displayAvatarURL(),
+          trabajosActuales,
+          limiteTrabajos,
+        });
         setTimeout(() => pendingSolicitudes.delete(pendingKey), 24 * 60 * 60 * 1000);
 
-        const solicitudEmbed = new EmbedBuilder().setColor(0x5865f2).setTitle("<a:cargando:1456888296381874207> | Nueva Solicitud de Rol").setImage(pruebas.url)
-          .addFields({ name: "<:Miembro:1473969750139994112> | Solicitante", value: `${interaction.user}`, inline: true }, { name: "<:config:1473970137089445909> | Rol solicitado", value: rolNombre, inline: true }, { name: "\u200B", value: "\u200B", inline: false }, { name: "<a:dancergb:1357113390413123775> | Motivo", value: motivo, inline: false })
-          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" }).setTimestamp();
+        const trabajosTexto = `${trabajosActuales}/${limiteTrabajos} trabajos primarios`;
+        const solicitudEmbed = new EmbedBuilder()
+          .setColor(0x5865f2)
+          .setTitle("<a:Aprobado:1399874076402778122> | Nueva Solicitud Generada")
+          .setThumbnail(interaction.user.displayAvatarURL())
+          .setDescription(
+            `<:Miembro:1473969750139994112> | **Miembro:** <@${interaction.user.id}>
+` +
+            `<a:Nerd:1357113815623536791> | **Rol solicitado:** <@&${rolId}>
+` +
+            `<:discord:1468196272199569410> | **Trabajos primarios:** ${trabajosTexto}
+` +
+            `<a:check1:1468762093741412553> | **Pruebas:** *(foto adjunta abajo)*`
+          )
+          .setImage(pruebas.url)
+          .setFooter({ text: `Solicitud enviada · ${fechaHoraAhora()}` });
 
         const solicitudChannel = await client.channels.fetch(CANAL_SOLICITAR_ROL);
         if (solicitudChannel instanceof TextChannel || solicitudChannel instanceof NewsChannel) {
-          await solicitudChannel.send({ content: `<@&${ROL_STAFF_SOLICITUDES}>`, embeds: [solicitudEmbed], components: [new ActionRowBuilder<ButtonBuilder>().addComponents(new ButtonBuilder().setCustomId(`solicitud_aceptar_${pendingKey}`).setLabel("Aceptar").setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId(`solicitud_rechazar_${pendingKey}`).setLabel("Rechazar").setStyle(ButtonStyle.Danger))] });
+          const msg = await solicitudChannel.send({
+            embeds: [solicitudEmbed],
+            components: [new ActionRowBuilder<ButtonBuilder>().addComponents(
+              new ButtonBuilder().setCustomId(`solicitud_aceptar_${pendingKey}`).setLabel("Aceptar").setStyle(ButtonStyle.Success),
+              new ButtonBuilder().setCustomId(`solicitud_rechazar_${pendingKey}`).setLabel("Rechazar").setStyle(ButtonStyle.Danger)
+            )],
+          });
+          // Guardamos IDs para poder editar el embed luego
+          const saved = pendingSolicitudes.get(pendingKey);
+          if (saved) { saved.messageId = msg.id; saved.channelId = msg.channelId; }
         }
-        return interaction.editReply({ content: `<a:Aprobado:1399874076402778122> | Tu solicitud para el rol **${rolNombre}** ha sido enviada correctamente. El staff revisará tu solicitud próximamente.` });
+        return interaction.editReply({ content: `<a:Aprobado:1399874076402778122> | Tu solicitud para el rol <@&${rolId}> ha sido enviada correctamente. El staff la revisará próximamente.` });
+      } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
+    }
+
+    // ── /estadisticas ─────────────────────────────────────────────────────
+    if (interaction.commandName === "estadisticas") {
+      await interaction.deferReply({ ephemeral: true });
+      try {
+        const guild  = interaction.guild;
+        const member = guild ? await guild.members.fetch(interaction.user.id).catch(() => null) : null;
+
+        const trabajosActuales = ROLES_TRABAJOS_PRIMARIOS.filter((r) => member?.roles.cache.has(r.id));
+        const esVip            = ROLES_VIP_TRABAJOS.some((r) => member?.roles.cache.has(r));
+        const limiteTrabajos   = esVip ? 4 : 2;
+        const listaTrabajosStr = trabajosActuales.length > 0
+          ? trabajosActuales.map((r) => `${r.emoji}|| **${r.nombre}** (<@&${r.id}>)`).join("
+")
+          : "Sin trabajos primarios asignados.";
+
+        const embed = new EmbedBuilder()
+          .setColor(0x5865f2)
+          .setTitle("<:Miembro:1473969750139994112> | Tus Estadísticas")
+          .setThumbnail(interaction.user.displayAvatarURL())
+          .addFields(
+            { name: "<:discord:1468196272199569410> | Usuario", value: `${interaction.user}`, inline: true },
+            { name: "<a:Nerd:1357113815623536791> | Límite de trabajos", value: `${limiteTrabajos} ${esVip ? "(VIP)" : ""}`, inline: true },
+            { name: "<:config:1473970137089445909> | Trabajos primarios actuales", value: `${trabajosActuales.length}/${limiteTrabajos}`, inline: true },
+            { name: "<a:check1:1468762093741412553> | Trabajos", value: listaTrabajosStr, inline: false },
+          )
+          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" })
+          .setTimestamp();
+
+        return interaction.editReply({ embeds: [embed] });
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
