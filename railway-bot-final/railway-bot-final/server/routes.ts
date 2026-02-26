@@ -52,7 +52,7 @@ const CANAL_LOG_REGISTROS          = "1475710164337168437";
 const GUILD_ID                     = "1349870169056350270";
 
 // ── Constantes de roles ───────────────────────────────────────────────────────
-const ROL_MODERADOR        = "1349870169756930109";
+const ROL_MODERADOR        = "1349870169756930109"; // usado en: /lista-staff, /verificar, /calificar-staff, tecnicatura, muted
 const ROL_POSTULANTE_STAFF = "1349870169756930110";
 const ROL_MODERADOR_MUTE   = "1349870169756930113";
 const ROL_CIUDADANO        = "1349870169232511064";
@@ -274,14 +274,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       .addUserOption((o) => o.setName("staff").setDescription("Miembro del staff a calificar.").setRequired(true))
       .addIntegerOption((o) => o.setName("estrellas").setDescription("Calificación de 1 a 5 estrellas.").setRequired(true).addChoices({ name: "⭐", value: 1 }, { name: "⭐⭐", value: 2 }, { name: "⭐⭐⭐", value: 3 }, { name: "⭐⭐⭐⭐", value: 4 }, { name: "⭐⭐⭐⭐⭐", value: 5 }))
       .addStringOption((o) => o.setName("opinion_personal").setDescription("Explica por qué das esta calificación.").setRequired(true).setMaxLength(500)),
-
-    new SlashCommandBuilder().setName("añadir-rol").setDescription("Añade un rol a un usuario.")
-      .addUserOption((o) => o.setName("usuario").setDescription("Usuario al que se le añadirá el rol.").setRequired(true))
-      .addRoleOption((o) => o.setName("rol").setDescription("Rol que se añadirá al usuario.").setRequired(true)),
-
-    new SlashCommandBuilder().setName("eliminar-rol").setDescription("Elimina un rol de un usuario.")
-      .addUserOption((o) => o.setName("usuario").setDescription("Usuario al que se le eliminará el rol.").setRequired(true))
-      .addRoleOption((o) => o.setName("rol").setDescription("Rol que se eliminará del usuario.").setRequired(true)),
 
     new SlashCommandBuilder().setName("lista-staff").setDescription("Muestra la lista de moderadores y postulantes del staff."),
 
@@ -608,36 +600,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const canalDestino = await client.channels.fetch(CANAL_DESTINO_CALIFICACIONES);
         if (canalDestino instanceof TextChannel || canalDestino instanceof NewsChannel) await canalDestino.send({ content: `<@${staffUser.id}>`, embeds: [embed] });
         return interaction.reply({ content: "<a:Aprobado:1399874076402778122> | Tu calificación ha sido enviada correctamente.", ephemeral: true });
-      } catch (error: any) { return interaction.reply({ content: `Error: \`${error?.message ?? String(error)}\``, ephemeral: true }); }
-    }
-
-    // /añadir-rol
-    if (interaction.commandName === "añadir-rol") {
-      const member = interaction.member;
-      if (!member || !("roles" in member) || !(member.roles as any).cache.has(ROL_MODERADOR)) return interaction.reply({ content: "<a:Nerd:1357113815623536791> | No tenés los permisos necesarios para este comando.", ephemeral: true });
-      const targetUser = interaction.options.getUser("usuario", true);
-      const rol        = interaction.options.getRole("rol", true);
-      try {
-        const guild = interaction.guild; if (!guild) return interaction.reply({ content: "Error al obtener información del servidor.", ephemeral: true });
-        const targetMember = await guild.members.fetch(targetUser.id);
-        if (targetMember.roles.cache.has(rol.id)) return interaction.reply({ content: `<:adv:1468761911821602947> | El usuario ${targetUser} ya tiene el rol ${rol}.`, ephemeral: true });
-        await targetMember.roles.add(rol.id);
-        return interaction.reply({ embeds: [new EmbedBuilder().setColor(0x00c851).setTitle("Rol Añadido").setDescription(`<a:Aprobado:1399874076402778122> | El rol <@&${rol.id}> ha sido añadido a ${targetUser} exitosamente.`).setTimestamp().setFooter({ text: `Ejecutado por ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })], allowedMentions: { roles: [] } });
-      } catch (error: any) { return interaction.reply({ content: `Error: \`${error?.message ?? String(error)}\``, ephemeral: true }); }
-    }
-
-    // /eliminar-rol
-    if (interaction.commandName === "eliminar-rol") {
-      const member = interaction.member;
-      if (!member || !("roles" in member) || !(member.roles as any).cache.has(ROL_MODERADOR)) return interaction.reply({ content: "<a:Nerd:1357113815623536791> | No tenés los permisos necesarios para este comando.", ephemeral: true });
-      const targetUser = interaction.options.getUser("usuario", true);
-      const rol        = interaction.options.getRole("rol", true);
-      try {
-        const guild = interaction.guild; if (!guild) return interaction.reply({ content: "Error al obtener información del servidor.", ephemeral: true });
-        const targetMember = await guild.members.fetch(targetUser.id);
-        if (!targetMember.roles.cache.has(rol.id)) return interaction.reply({ content: `<:adv:1468761911821602947> | El usuario ${targetUser} no tiene el rol ${rol}.`, ephemeral: true });
-        await targetMember.roles.remove(rol.id);
-        return interaction.reply({ embeds: [new EmbedBuilder().setColor(0xff6600).setTitle("Rol Eliminado").setDescription(`<a:Aprobado:1399874076402778122> | El rol <@&${rol.id}> ha sido eliminado del perfil de ${targetUser} exitosamente.`).setTimestamp().setFooter({ text: `Ejecutado por ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })], allowedMentions: { roles: [] } });
       } catch (error: any) { return interaction.reply({ content: `Error: \`${error?.message ?? String(error)}\``, ephemeral: true }); }
     }
 
