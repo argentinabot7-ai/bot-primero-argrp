@@ -976,8 +976,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const esVip            = ROLES_VIP_TRABAJOS.some((r) => member?.roles.cache.has(r));
         const limiteTrabajos   = esVip ? 4 : 2;
         const listaTrabajosStr = trabajosActuales.length > 0
-          ? trabajosActuales.map((r) => `${r.emoji}|| **${r.nombre}** (<@&${r.id}>)`).join("
-")
+          ? trabajosActuales.map((r) => `${r.emoji}|| **${r.nombre}** (<@&${r.id}>)`).join("\n")
           : "Sin trabajos primarios asignados.";
 
         const embed = new EmbedBuilder()
