@@ -1015,11 +1015,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           .setTitle("<:Miembro:1473969750139994112> | Info Discord")
           .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
-            { name: "<:discord:1468196272199569410> | Usuario", value: `${targetUser}`, inline: true },
-            { name: "<a:Nerd:1357113815623536791> | VIP", value: esVip ? "✅ Sí" : "❌ No", inline: true },
+            { name: "<:Miembro:1473969750139994112> | Usuario", value: `${targetUser}`, inline: true },
+            { name: "<a:check1:1468762093741412553> | VIP", value: esVip ? "<a:Aprobado:1399874076402778122> | Sí" : "<a:Reprobado:1399874121055076372> | No", inline: true },
             { name: "\u200B", value: "\u200B", inline: false },
-            { name: `<:config:1473970137089445909> | Trabajos primarios (${primActuales.length}/${limitePrim})`, value: listaPrim, inline: false },
-            { name: `<a:check1:1468762093741412553> | Trabajos secundarios (${secActuales.length}/${limiteSec})`, value: listaSec, inline: false },
+            { name: `<:uno:1468199771532427264> | Trabajos primarios (${primActuales.length}/${limitePrim})`, value: listaPrim, inline: false },
+            { name: `<:dos:1468199817011400838> | Trabajos secundarios (${secActuales.length}/${limiteSec})`, value: listaSec, inline: false },
           )
           .setFooter({ text: `Consultado por ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
           .setTimestamp();
