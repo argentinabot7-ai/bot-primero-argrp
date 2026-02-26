@@ -779,7 +779,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         // ── Embed público ─────────────────────────────────────────────────
         const arrestoEmbed = new EmbedBuilder()
           .setColor(0xed4245)
-          .setTitle("<:BAN:1350470431441682514> | Registro de Arresto — Argentina RP")
+          .setTitle("<a:check1:1468762093741412553> | Uusuario Arrestado")
           .setImage(fotoArresto.url)
           .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
@@ -803,7 +803,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           const logEmbed = new EmbedBuilder()
             .setColor(0xed4245)
-            .setTitle("<:config:1473970137089445909> | LOG — Nuevo Arresto Registrado")
+            .setTitle("<:config:1473970137089445909> | LOGs — Arrestos")
             .setThumbnail(targetUser.displayAvatarURL())
             .setImage(fotoArresto.url)
             .addFields(
@@ -837,7 +837,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const registroEmbed = new EmbedBuilder()
           .setColor(0x5865f2)
-          .setTitle("<:BAN:1350470431441682514> | Historial de Arrestos — Argentina RP")
+          .setTitle("<a:check1:1468762093741412553> | Historial de Arrestos")
           .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
             { name: "<:Miembro:1473969750139994112> | Usuario",            value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
@@ -854,7 +854,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const ultimos = historial.slice(0, 25);
           const selectCargos = new StringSelectMenuBuilder()
             .setCustomId(`arrestos_cargos_${targetUser.id}`)
-            .setPlaceholder("📋 Historial — Seleccioná un arresto para ver sus cargos")
+            .setPlaceholder("📋 | Historial — Seleccioná un arresto para ver sus cargos")
             .addOptions(ultimos.map((a) => ({
               label:       `Arresto #${a.id} — ${a.fecha}`,
               value:       `cargo_${a.id}`,
@@ -879,7 +879,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const logChannel = await client.channels.fetch(CANAL_LOG_REGISTROS);
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           await logChannel.send({ embeds: [new EmbedBuilder().setColor(0xff6600)
-            .setTitle("<a:Reprobado:1399874121055076372> | LOG — Arrestos Eliminados")
+            .setTitle("<a:Aprobado:1399874076402778122> | LOGs — Arrestos Eliminados")
             .setThumbnail(targetUser.displayAvatarURL())
             .addFields(
               { name: "<:Miembro:1473969750139994112> | Usuario",            value: `${targetUser}\n\`${targetUser.tag}\` · \`${targetUser.id}\``, inline: false },
@@ -919,12 +919,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         // ── Embed público ─────────────────────────────────────────────────
         const multaEmbed = new EmbedBuilder()
           .setColor(0xff6600)
-          .setTitle("<:adv:1468761911821602947> | Registro de Multa — Argentina RP")
+          .setTitle("<:adv:1468761911821602947> | Usuario Multado")
           .setImage(fotoMulta.url)
           .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
             { name: "<:Miembro:1473969750139994112> | Multado",              value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
-            { name: "<:Moderadores:1473981745689923728> | Oficial a cargo",  value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
+            { name: "<a:dancergb:1357113390413123775> | Oficial a cargo",  value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
             { name: "\u200b",                                                 value: "\u200b", inline: true },
             { name: "<:adv:1468761911821602947> | Cargos / Infracción",      value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
             { name: "<:chik:1473970031489454100> | Gastos totales",          value: gastos.total, inline: true },
@@ -943,7 +943,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           const logEmbed = new EmbedBuilder()
             .setColor(0xff6600)
-            .setTitle("<:config:1473970137089445909> | LOG — Nueva Multa Registrada")
+            .setTitle("<:config:1473970137089445909> | LOGs — Multa Registrada")
             .setThumbnail(targetUser.displayAvatarURL())
             .setImage(fotoMulta.url)
             .addFields(
@@ -976,12 +976,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const logChannel = await client.channels.fetch(CANAL_LOG_REGISTROS);
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           await logChannel.send({ embeds: [new EmbedBuilder().setColor(0xff6600)
-            .setTitle("<a:Reprobado:1399874121055076372> | LOG — Multas Eliminadas")
+            .setTitle("<a:dancergb:1357113390413123775> | LOGs — Multas Eliminadas")
             .setThumbnail(targetUser.displayAvatarURL())
             .addFields(
               { name: "<:Miembro:1473969750139994112> | Usuario",           value: `${targetUser}\n\`${targetUser.tag}\` · \`${targetUser.id}\``, inline: false },
               { name: "<:adv:1468761911821602947> | Multas borradas",       value: `\`${cantidadBorrada}\``, inline: true },
-              { name: "<:adv:1468761911821602947> | Motivo",                value: motivo, inline: false },
+              { name: "<:Ehh:1457908929504870475> | Motivo",                value: motivo, inline: false },
               { name: "<:Moderadores:1473981745689923728> | Ejecutado por", value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
               { name: "<a:cargando:1456888296381874207> | Fecha",           value: `\`${fechaHoraAhora()}\``, inline: true },
             )
