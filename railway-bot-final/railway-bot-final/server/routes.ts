@@ -232,8 +232,18 @@ const ROLES_TRABAJOS_PRIMARIOS: { id: string; nombre: string; emoji: string }[] 
   { id: "1355583720622657676", nombre: "Automovil Club Argentino",       emoji: "🚧" },
 ];
 
-// Roles VIP que permiten hasta 4 trabajos primarios (en vez de 2)
+// Roles VIP que permiten hasta 3 trabajos primarios (en vez de 2) y 2 secundarios (en vez de 1)
 const ROLES_VIP_TRABAJOS = ["1350294370766557254", "1350294391130165321", "1356372171751948288"];
+
+// Roles de trabajos secundarios
+const ROLES_TRABAJOS_SECUNDARIOS: string[] = [
+  "1350128958477172796", "1349870169337368660", "1454866615094218823",
+  "1463214222430306316", "1391969382237732965", "1474753287675973745",
+  "1396137541761241248", "1396873933008932924", "1396136805904158722",
+  "1393609761987104888", "1396874236290793664", "1396138087834452091",
+  "1396138356307656774", "1396136280940871773", "1454141465134497908",
+  "1405028691809013831", "1407065612555129003",
+];
 
 // ── Roles disponibles para /solicitar-rol ─────────────────────────────────────
 const ROLES_DISPONIBLES = ROLES_TRABAJOS_PRIMARIOS.map((r) => ({
@@ -309,7 +319,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     new SlashCommandBuilder().setName("arrestar").setDescription("Registra el arresto de un usuario.")
       .addUserOption((o) => o.setName("usuario").setDescription("Usuario arrestado.").setRequired(true))
-      .addStringOption((o) => o.setName("cargos").setDescription("Cargos del arresto.").setRequired(true).setMaxLength(500))
+      .addStringOption((o) => o.setName("cargos").setDescription("Cargos del arresto. (mín. 15, máx. 5000 caracteres)").setRequired(true).setMaxLength(5000).setMinLength(15))
       .addAttachmentOption((o) => o.setName("foto-arresto").setDescription("Foto del arresto como prueba.").setRequired(true)),
 
     new SlashCommandBuilder().setName("registros-arrestos").setDescription("Muestra los registros de arrestos de un usuario.")
@@ -321,7 +331,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     new SlashCommandBuilder().setName("multar").setDescription("Registra una multa a un usuario.")
       .addUserOption((o) => o.setName("usuario").setDescription("Usuario multado.").setRequired(true))
-      .addStringOption((o) => o.setName("cargos").setDescription("Cargos de la multa.").setRequired(true).setMaxLength(500))
+      .addStringOption((o) => o.setName("cargos").setDescription("Cargos de la multa. (mín. 15, máx. 5000 caracteres)").setRequired(true).setMaxLength(5000).setMinLength(15))
       .addAttachmentOption((o) => o.setName("foto-multa").setDescription("Foto de la multa como prueba.").setRequired(true)),
 
     new SlashCommandBuilder().setName("eliminar-multa").setDescription("Elimina las multas de un usuario de la base de datos.")
@@ -333,7 +343,22 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       .addStringOption((o) => o.setName("motivo").setDescription("Motivo de tu solicitud.").setRequired(true).setMaxLength(500))
       .addAttachmentOption((o) => o.setName("pruebas").setDescription("Foto con las pruebas de tu solicitud.").setRequired(true)),
 
-    new SlashCommandBuilder().setName("estadisticas").setDescription("Muestra las calificaciones de todos los moderadores del staff."),
+    new SlashCommandBuilder().setName("info-discord").setDescription("Muestra información y estadísticas de un usuario del servidor.")
+      .addUserOption((o) => o.setName("usuario").setDescription("Usuario a consultar (opcional, por defecto sos vos).").setRequired(false)),
+
+    new SlashCommandBuilder().setName("eliminar-trabajo").setDescription("Elimina un trabajo primario de un usuario.")
+      .addUserOption((o) => o.setName("usuario").setDescription("Usuario al que se le eliminará el trabajo.").setRequired(true))
+      .addStringOption((o) => o.setName("trabajo").setDescription("Trabajo a eliminar.").setRequired(true).addChoices(
+        { name: "💼|| Juez - Fiscal",                  value: "1436174608339566777" },
+        { name: "💼|| Abogado",                        value: "1349870169337368664" },
+        { name: "🦅|| Brigada Especial de Halcón",     value: "1353392018201509960" },
+        { name: "🚓|| Policía Federal Argentina",      value: "1349870169362661440" },
+        { name: "🚓|| Policía de la Ciudad",           value: "1387584047685046312" },
+        { name: "🪖|| Gendarmeria Nacional Argentina", value: "1349870169362661439" },
+        { name: "🚑|| SAME",                           value: "1349870169337368667" },
+        { name: "🚒|| Bomberos de la Ciudad",          value: "1349870169337368666" },
+        { name: "🚧|| Automovil Club Argentino",       value: "1355583720622657676" },
+      )),
   ];
 
   // ── Ready ─────────────────────────────────────────────────────────────────
@@ -607,7 +632,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           .addFields({ name: "<a:Aprobado:1399874076402778122> | Aceptado por", value: `${interaction.user} (${interaction.user.tag})`, inline: false });
         await interaction.update({ embeds: [editedEmbed], components: [disabledRow] });
         // Mencionar al rol en el canal
-        await interaction.followUp({ content: `<@&${pending.rolId}> | <@${pending.requesterId}> tu solicitud fue aprobada por **${interaction.user.tag}**.` });
+        await interaction.followUp({ content: `<a:Aprobado:1399874076402778122> | Solicitud de <@${pending.requesterId}> aceptada. Rol <@&${pending.rolId}> asignado.`, ephemeral: true });
         return;
       }
 
@@ -915,7 +940,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const trabajosActuales = ROLES_TRABAJOS_PRIMARIOS.filter((r) => member.roles.cache.has(r.id)).length;
         const esVip = ROLES_VIP_TRABAJOS.some((r) => member.roles.cache.has(r));
-        const limiteTrabajos = esVip ? 4 : 2;
+        const limiteTrabajos = esVip ? 3 : 2;
 
         const pendingKey = `solicitud_${interaction.user.id}_${Date.now()}`;
         pendingSolicitudes.set(pendingKey, {
@@ -965,34 +990,45 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
-    // ── /estadisticas ─────────────────────────────────────────────────────
-    if (interaction.commandName === "estadisticas") {
+    // ── /eliminar-trabajo ────────────────────────────────────────────────
+    if (interaction.commandName === "eliminar-trabajo") {
+      if (!hasStaffSolicitudesRole(interaction.member) && !interaction.memberPermissions?.has("ManageRoles")) {
+        return interaction.reply({ content: "<:equiz:1468761969518706708> | No tenés los permisos necesarios para usar este comando.", ephemeral: true });
+      }
+      const targetUser = interaction.options.getUser("usuario", true);
+      const rolId      = interaction.options.getString("trabajo", true);
+      const rolInfo    = ROLES_TRABAJOS_PRIMARIOS.find((r) => r.id === rolId);
+      const rolDisplay = rolInfo ? `${rolInfo.emoji}|| ${rolInfo.nombre}` : rolId;
       await interaction.deferReply({ ephemeral: true });
       try {
-        const guild  = interaction.guild;
-        const member = guild ? await guild.members.fetch(interaction.user.id).catch(() => null) : null;
-
-        const trabajosActuales = ROLES_TRABAJOS_PRIMARIOS.filter((r) => member?.roles.cache.has(r.id));
-        const esVip            = ROLES_VIP_TRABAJOS.some((r) => member?.roles.cache.has(r));
-        const limiteTrabajos   = esVip ? 4 : 2;
-        const listaTrabajosStr = trabajosActuales.length > 0
-          ? trabajosActuales.map((r) => `${r.emoji}|| **${r.nombre}** (<@&${r.id}>)`).join("\n")
-          : "Sin trabajos primarios asignados.";
+        const guild = interaction.guild;
+        if (!guild) return interaction.editReply({ content: "Error al obtener el servidor." });
+        const targetMember = await guild.members.fetch(targetUser.id).catch(() => null);
+        if (!targetMember) return interaction.editReply({ content: "<:equiz:1468761969518706708> | No se encontró al usuario en el servidor." });
+        if (!targetMember.roles.cache.has(rolId)) {
+          return interaction.editReply({ content: `<:adv:1468761911821602947> | El usuario ${targetUser} no tiene el trabajo **${rolDisplay}**.` });
+        }
+        await targetMember.roles.remove(rolId);
 
         const embed = new EmbedBuilder()
-          .setColor(0x5865f2)
-          .setTitle("<:Miembro:1473969750139994112> | Tus Estadísticas")
+          .setColor(0xed4245)
+          .setTitle("<a:Reprobado:1399874121055076372> | Trabajo Eliminado")
           .setThumbnail(interaction.user.displayAvatarURL())
           .addFields(
-            { name: "<:discord:1468196272199569410> | Usuario", value: `${interaction.user}`, inline: true },
-            { name: "<a:Nerd:1357113815623536791> | Límite de trabajos", value: `${limiteTrabajos} ${esVip ? "(VIP)" : ""}`, inline: true },
-            { name: "<:config:1473970137089445909> | Trabajos primarios actuales", value: `${trabajosActuales.length}/${limiteTrabajos}`, inline: true },
-            { name: "<a:check1:1468762093741412553> | Trabajos", value: listaTrabajosStr, inline: false },
+            { name: "<:Miembro:1473969750139994112> | Usuario",    value: `${targetUser}`, inline: true },
+            { name: "<:config:1473970137089445909> | Trabajo eliminado", value: `<@&${rolId}>`, inline: true },
+            { name: "<:Moderadores:1473981745689923728> | Ejecutado por", value: `${interaction.user}`, inline: true },
+            { name: "<a:cargando:1456888296381874207> | Fecha",    value: fechaHoraAhora(), inline: true },
           )
           .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" })
           .setTimestamp();
 
-        return interaction.editReply({ embeds: [embed] });
+        const canal = await client.channels.fetch(CANAL_SOLICITAR_ROL);
+        if (canal instanceof TextChannel || canal instanceof NewsChannel) {
+          await canal.send({ embeds: [embed] });
+        }
+
+        return interaction.editReply({ content: `<a:Aprobado:1399874076402778122> | El trabajo <@&${rolId}> fue eliminado del perfil de ${targetUser} correctamente.` });
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
