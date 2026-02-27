@@ -126,7 +126,6 @@ function fechaHoraAhora(): string {
   return new Date().toLocaleString("es-AR");
 }
 
-// ── Calcula montos con p/ (ej: p/500, p/1.000) ────────────────────────────────
 function calcularGastos(texto: string): { detalle: string; total: string } {
   const matches = texto.match(/p\/\s*[\d.,]+/gi);
   if (!matches || matches.length === 0) {
@@ -137,8 +136,8 @@ function calcularGastos(texto: string): { detalle: string; total: string } {
     const num = parseFloat(raw);
     return isNaN(num) ? 0 : num;
   });
-  const total   = montos.reduce((a, b) => a + b, 0);
-  const detalle = matches.map((m) => `\`${m.replace(/\s/g, "")}\``).join(", ");
+  const total        = montos.reduce((a, b) => a + b, 0);
+  const detalle      = matches.map((m) => `\`${m.replace(/\s/g, "")}\``).join(", ");
   const totalFormato = `**p/${total.toLocaleString("es-AR")}**`;
   return { detalle, total: totalFormato };
 }
@@ -346,7 +345,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   client.once("ready", async () => {
     console.log(`Logged in as ${client.user?.tag}!`);
-    console.log("Base de datos SQLite iniciada correctamente.");
+    console.log("Base de datos PostgreSQL iniciada correctamente.");
     const statuses = [
       { name: "Developer: @vladimirfernan.", type: ActivityType.Watching },
       { name: "TikTok: Argentina_rperlc",    type: ActivityType.Watching },
@@ -377,7 +376,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     if (command === "info") {
       const embed = new EmbedBuilder().setColor(0x5865f2).setTitle("Información General — Bot Argentina RP")
-        .setDescription("**Comandos disponibles:**\n`/calificar-staff` — Califica al staff\n`/verificar` — Verifica a un usuario\n`/entorno` — Registra el entorno de tu personaje\n`/roblox-info` — Info detallada de una cuenta de Roblox\n`/arrestar` — Registra un arresto\n`/registros-arrestos` — Consulta el historial de arrestos\n`/eliminar-arrestos` — Elimina arrestos de un usuario\n`/multar` — Registra una multa\n`/eliminar-multa` — Elimina multas de un usuario\n`/solicitar-rol` — Solicita un rol al staff\n`c?info` — Información del bot\n\n**Desarrollador:**\n`@vladimirfernan.` — Reportar errores\n\n**Stack:**\n`Discord.js` `TypeScript` `SQLite (better-sqlite3)`")
+        .setDescription("**Comandos disponibles:**\n`/calificar-staff` — Califica al staff\n`/verificar` — Verifica a un usuario\n`/entorno` — Registra el entorno de tu personaje\n`/roblox-info` — Info detallada de una cuenta de Roblox\n`/arrestar` — Registra un arresto\n`/registros-arrestos` — Consulta el historial de arrestos\n`/eliminar-arrestos` — Elimina arrestos de un usuario\n`/multar` — Registra una multa\n`/eliminar-multa` — Elimina multas de un usuario\n`/solicitar-rol` — Solicita un rol al staff\n`c?info` — Información del bot\n\n**Desarrollador:**\n`@vladimirfernan.` — Reportar errores\n\n**Stack:**\n`Discord.js` `TypeScript` `PostgreSQL + Drizzle ORM`")
         .setFooter({ text: "Todos los derechos reservados 2026, Argentina Roleplay.", iconURL: message.guild?.iconURL() ?? "" }).setTimestamp();
       return void message.channel.send({ embeds: [embed] });
     }
@@ -622,7 +621,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const promedioEstrellas   = await storage.getPromedioEstrellasByStaff(staffUser.id);
         const embed = new EmbedBuilder().setColor(0xffd700).setTitle("<:chik:1473970031489454100> | Calificación Staff — Registrada").setDescription("Gracias por tu calificación.")
           .addFields(
-            { name: "<:Miembro:1473969750139994112> | Usuario",            value: `${interaction.user}`, inline: true },
+            { name: "<:Miembro:1473969750139994112> | Usuario",             value: `${interaction.user}`, inline: true },
             { name: "<:Moderadores:1473981745689923728> | Staff calificado", value: `${staffUser}`, inline: true },
             { name: "<a:Nerd:1357113815623536791> | Estrellas",             value: "⭐".repeat(estrellas), inline: true },
             { name: "<a:dancergb:1357113390413123775> | Opinión personal",  value: nota, inline: false },
@@ -742,19 +741,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const descripcionTruncada = info.description.length > 300 ? info.description.substring(0, 297) + "..." : info.description;
         return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xe8082c).setTitle(`<:config:1473970137089445909> | ${info.displayName} (@${info.name})`).setURL(info.profileUrl).setThumbnail(info.fullBodyUrl).setDescription(descripcionTruncada)
           .addFields(
-            { name: "<:chik:1473970031489454100> | ID",           value: String(info.id),       inline: true },
-            { name: "<:config:1473970137089445909> | Creado el",  value: info.created,          inline: true },
-            { name: "<:BAN:1350470431441682514> | Baneado",        value: info.isBanned ? "Sí" : "No", inline: true },
-            { name: "<:Miembro:1473969750139994112> | Amigos",    value: String(info.friendCount),   inline: true },
-            { name: "<a:check1:1468762093741412553> | Seguidores", value: String(info.followerCount), inline: true },
-            { name: "<a:cargando:1456888296381874207> | Siguiendo",value: String(info.followingCount), inline: true },
-            { name: "<:enlaces:1468199583418155197> | Perfil",    value: `[Ver en Roblox](${info.profileUrl})`, inline: false }
+            { name: "<:chik:1473970031489454100> | ID",            value: String(info.id),       inline: true },
+            { name: "<:config:1473970137089445909> | Creado el",   value: info.created,          inline: true },
+            { name: "<:BAN:1350470431441682514> | Baneado",         value: info.isBanned ? "Sí" : "No", inline: true },
+            { name: "<:Miembro:1473969750139994112> | Amigos",     value: String(info.friendCount),   inline: true },
+            { name: "<a:check1:1468762093741412553> | Seguidores",  value: String(info.followerCount), inline: true },
+            { name: "<a:cargando:1456888296381874207> | Siguiendo", value: String(info.followingCount), inline: true },
+            { name: "<:enlaces:1468199583418155197> | Perfil",     value: `[Ver en Roblox](${info.profileUrl})`, inline: false }
           )
           .setFooter({ text: `Consultado por ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() }).setTimestamp()] });
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
-    // ── /arrestar ─────────────────────────────────────────────────────────
+    // /arrestar
     if (interaction.commandName === "arrestar") {
       if (!hasPoliceRole(interaction.member)) return interaction.reply({ content: "<:equiz:1468761969518706708> | No tenés los permisos necesarios para usar este comando.", ephemeral: true });
       const targetUser  = interaction.options.getUser("usuario", true);
@@ -763,32 +762,31 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       await interaction.deferReply({ ephemeral: true });
       try {
         const guild = interaction.guild;
-
-        // Guardar Roblox solo para la DB — no aparece en el embed público
         let robloxName = targetUser.username, robloxUrl = "";
         if (guild) {
           const targetMember = await guild.members.fetch(targetUser.id).catch(() => null);
           const robloxData   = await getRobloxFromNickname(targetMember?.nickname ?? targetUser.username);
           if (robloxData) { robloxName = robloxData.name; robloxUrl = `https://www.roblox.com/users/${robloxData.id}/profile`; }
         }
-        insertArresto({ userId: targetUser.id, userTag: targetUser.tag, robloxName, robloxUrl, cargos, oficialId: interaction.user.id, oficialTag: interaction.user.tag, fotoUrl: fotoArresto.url, fecha: fechaHoy() });
+
+        // ── Guardar en PostgreSQL ─────────────────────────────────────────
+        await insertArresto({ userId: targetUser.id, userTag: targetUser.tag, robloxName, robloxUrl, cargos, oficialId: interaction.user.id, oficialTag: interaction.user.tag, fotoUrl: fotoArresto.url, fecha: fechaHoy() });
 
         const gastos        = calcularGastos(cargos);
         const cargosDisplay = cargos.length > 1024 ? cargos.substring(0, 1021) + "..." : cargos;
 
-        // ── Embed público ─────────────────────────────────────────────────
         const arrestoEmbed = new EmbedBuilder()
           .setColor(0xed4245)
-          .setTitle("<a:check1:1468762093741412553> | Uusuario Arrestado")
+          .setTitle("<:BAN:1350470431441682514> | Registro de Arresto — Argentina RP")
           .setImage(fotoArresto.url)
           .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
-            { name: "<:Miembro:1473969750139994112> | Detenido",              value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
-            { name: "<:Moderadores:1473981745689923728> | Oficial a cargo",   value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
-            { name: "\u200b",                                                  value: "\u200b", inline: true },
-            { name: "<:adv:1468761911821602947> | Cargos aplicados",          value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
-            { name: "<:chik:1473970031489454100> | Gastos totales",           value: gastos.total, inline: true },
-            { name: "<a:cargando:1456888296381874207> | Fecha de arresto",    value: `\`${fechaHoy()}\``, inline: true },
+            { name: "<:Miembro:1473969750139994112> | Detenido",             value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
+            { name: "<:Moderadores:1473981745689923728> | Oficial a cargo",  value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
+            { name: "\u200b",                                                 value: "\u200b", inline: true },
+            { name: "<:adv:1468761911821602947> | Cargos aplicados",         value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
+            { name: "<:chik:1473970031489454100> | Gastos totales",          value: gastos.total, inline: true },
+            { name: "<a:cargando:1456888296381874207> | Fecha de arresto",   value: `\`${fechaHoy()}\``, inline: true },
           )
           .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC · Sistema de Arrestos" })
           .setTimestamp();
@@ -798,12 +796,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           await arrestoChannel.send({ embeds: [arrestoEmbed] });
         }
 
-        // ── Log interno ───────────────────────────────────────────────────
         const logChannel = await client.channels.fetch(CANAL_LOG_REGISTROS);
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           const logEmbed = new EmbedBuilder()
             .setColor(0xed4245)
-            .setTitle("<:config:1473970137089445909> | LOGs — Arrestos")
+            .setTitle("<:config:1473970137089445909> | LOG — Nuevo Arresto Registrado")
             .setThumbnail(targetUser.displayAvatarURL())
             .setImage(fotoArresto.url)
             .addFields(
@@ -823,28 +820,27 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
-    // ── /registros-arrestos ───────────────────────────────────────────────
+    // /registros-arrestos
     if (interaction.commandName === "registros-arrestos") {
       const targetUser = interaction.options.getUser("usuario", false) ?? interaction.user;
       await interaction.deferReply();
       try {
-        const historial     = getArrestosByUser(targetUser.id);
+        // ── Consultar PostgreSQL ──────────────────────────────────────────
+        const historial    = await getArrestosByUser(targetUser.id);
         const totalArrestos = historial.length;
-
-        // Calcular gastos acumulados de todos los arrestos del usuario
-        const todosLosCargos    = historial.map((a) => a.cargos).join(" ");
-        const gastosAcumulados  = calcularGastos(todosLosCargos);
+        const todosLosCargos   = historial.map((a) => a.cargos).join(" ");
+        const gastosAcumulados = calcularGastos(todosLosCargos);
 
         const registroEmbed = new EmbedBuilder()
           .setColor(0x5865f2)
-          .setTitle("<a:check1:1468762093741412553> | Historial de Arrestos")
+          .setTitle("<:BAN:1350470431441682514> | Historial de Arrestos — Argentina RP")
           .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
-            { name: "<:Miembro:1473969750139994112> | Usuario",            value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
-            { name: "<a:Nerd:1357113815623536791> | Total arrestos",       value: `\`${totalArrestos}\``, inline: true },
-            { name: "\u200b",                                               value: "\u200b", inline: true },
-            { name: "💰 | Gastos totales acumulados",                      value: gastosAcumulados.total, inline: true },
-            { name: "<a:cargando:1456888296381874207> | Última consulta",  value: `\`${fechaHoraAhora()}\``, inline: true },
+            { name: "<:Miembro:1473969750139994112> | Usuario",           value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
+            { name: "<a:Nerd:1357113815623536791> | Total arrestos",      value: `\`${totalArrestos}\``, inline: true },
+            { name: "\u200b",                                              value: "\u200b", inline: true },
+            { name: "💰 | Gastos totales acumulados",                     value: gastosAcumulados.total, inline: true },
+            { name: "<a:cargando:1456888296381874207> | Última consulta", value: `\`${fechaHoraAhora()}\``, inline: true },
           )
           .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC · Sistema de Registros" })
           .setTimestamp();
@@ -854,7 +850,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const ultimos = historial.slice(0, 25);
           const selectCargos = new StringSelectMenuBuilder()
             .setCustomId(`arrestos_cargos_${targetUser.id}`)
-            .setPlaceholder("📋 | Historial — Seleccioná un arresto para ver sus cargos")
+            .setPlaceholder("📋 Historial — Seleccioná un arresto para ver sus cargos")
             .addOptions(ultimos.map((a) => ({
               label:       `Arresto #${a.id} — ${a.fecha}`,
               value:       `cargo_${a.id}`,
@@ -866,20 +862,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
-    // ── /eliminar-arrestos ────────────────────────────────────────────────
+    // /eliminar-arrestos
     if (interaction.commandName === "eliminar-arrestos") {
       if (!hasPoliceRole(interaction.member)) return interaction.reply({ content: "<:equiz:1468761969518706708> | No tenés los permisos necesarios para usar este comando.", ephemeral: true });
       const targetUser = interaction.options.getUser("usuario", true);
       const motivo     = interaction.options.getString("motivo", true);
       await interaction.deferReply({ ephemeral: true });
       try {
-        const cantidadBorrada = deleteArrestosByUser(targetUser.id);
-        insertLog({ tipo: "arresto", userId: targetUser.id, userTag: targetUser.tag, cantidad: cantidadBorrada, motivo, ejecutadoBy: `${interaction.user.tag} (${interaction.user.id})`, fecha: fechaHoraAhora() });
+        // ── Eliminar de PostgreSQL ────────────────────────────────────────
+        const cantidadBorrada = await deleteArrestosByUser(targetUser.id);
+        await insertLog({ tipo: "arresto", userId: targetUser.id, userTag: targetUser.tag, cantidad: cantidadBorrada, motivo, ejecutadoBy: `${interaction.user.tag} (${interaction.user.id})`, fecha: fechaHoraAhora() });
 
         const logChannel = await client.channels.fetch(CANAL_LOG_REGISTROS);
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           await logChannel.send({ embeds: [new EmbedBuilder().setColor(0xff6600)
-            .setTitle("<a:Aprobado:1399874076402778122> | LOGs — Arrestos Eliminados")
+            .setTitle("<a:Reprobado:1399874121055076372> | LOG — Arrestos Eliminados")
             .setThumbnail(targetUser.displayAvatarURL())
             .addFields(
               { name: "<:Miembro:1473969750139994112> | Usuario",            value: `${targetUser}\n\`${targetUser.tag}\` · \`${targetUser.id}\``, inline: false },
@@ -894,7 +891,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
-    // ── /multar ───────────────────────────────────────────────────────────
+    // /multar
     if (interaction.commandName === "multar") {
       if (!hasPoliceRole(interaction.member)) return interaction.reply({ content: "<:equiz:1468761969518706708> | No tenés los permisos necesarios para usar este comando.", ephemeral: true });
       const targetUser = interaction.options.getUser("usuario", true);
@@ -903,28 +900,27 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       await interaction.deferReply({ ephemeral: true });
       try {
         const guild = interaction.guild;
-
-        // Guardar Roblox solo para la DB — no aparece en el embed público
         let robloxName = targetUser.username, robloxUrl = "";
         if (guild) {
           const targetMember = await guild.members.fetch(targetUser.id).catch(() => null);
           const robloxData   = await getRobloxFromNickname(targetMember?.nickname ?? targetUser.username);
           if (robloxData) { robloxName = robloxData.name; robloxUrl = `https://www.roblox.com/users/${robloxData.id}/profile`; }
         }
-        insertMulta({ userId: targetUser.id, userTag: targetUser.tag, robloxName, robloxUrl, cargos, oficialId: interaction.user.id, oficialTag: interaction.user.tag, fotoUrl: fotoMulta.url, fecha: fechaHoy() });
+
+        // ── Guardar en PostgreSQL ─────────────────────────────────────────
+        await insertMulta({ userId: targetUser.id, userTag: targetUser.tag, robloxName, robloxUrl, cargos, oficialId: interaction.user.id, oficialTag: interaction.user.tag, fotoUrl: fotoMulta.url, fecha: fechaHoy() });
 
         const gastos        = calcularGastos(cargos);
         const cargosDisplay = cargos.length > 1024 ? cargos.substring(0, 1021) + "..." : cargos;
 
-        // ── Embed público ─────────────────────────────────────────────────
         const multaEmbed = new EmbedBuilder()
           .setColor(0xff6600)
-          .setTitle("<:adv:1468761911821602947> | Usuario Multado")
+          .setTitle("<:adv:1468761911821602947> | Registro de Multa — Argentina RP")
           .setImage(fotoMulta.url)
           .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
             { name: "<:Miembro:1473969750139994112> | Multado",              value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
-            { name: "<a:dancergb:1357113390413123775> | Oficial a cargo",  value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
+            { name: "<:Moderadores:1473981745689923728> | Oficial a cargo",  value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
             { name: "\u200b",                                                 value: "\u200b", inline: true },
             { name: "<:adv:1468761911821602947> | Cargos / Infracción",      value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
             { name: "<:chik:1473970031489454100> | Gastos totales",          value: gastos.total, inline: true },
@@ -938,12 +934,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           await multaChannel.send({ embeds: [multaEmbed] });
         }
 
-        // ── Log interno ───────────────────────────────────────────────────
         const logChannel = await client.channels.fetch(CANAL_LOG_REGISTROS);
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           const logEmbed = new EmbedBuilder()
             .setColor(0xff6600)
-            .setTitle("<:config:1473970137089445909> | LOGs — Multa Registrada")
+            .setTitle("<:config:1473970137089445909> | LOG — Nueva Multa Registrada")
             .setThumbnail(targetUser.displayAvatarURL())
             .setImage(fotoMulta.url)
             .addFields(
@@ -963,25 +958,26 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
-    // ── /eliminar-multa ───────────────────────────────────────────────────
+    // /eliminar-multa
     if (interaction.commandName === "eliminar-multa") {
       if (!hasPoliceRole(interaction.member)) return interaction.reply({ content: "<:equiz:1468761969518706708> | No tenés los permisos necesarios para usar este comando.", ephemeral: true });
       const targetUser = interaction.options.getUser("usuario", true);
       const motivo     = interaction.options.getString("motivo", true);
       await interaction.deferReply({ ephemeral: true });
       try {
-        const cantidadBorrada = deleteMultasByUser(targetUser.id);
-        insertLog({ tipo: "multa", userId: targetUser.id, userTag: targetUser.tag, cantidad: cantidadBorrada, motivo, ejecutadoBy: `${interaction.user.tag} (${interaction.user.id})`, fecha: fechaHoraAhora() });
+        // ── Eliminar de PostgreSQL ────────────────────────────────────────
+        const cantidadBorrada = await deleteMultasByUser(targetUser.id);
+        await insertLog({ tipo: "multa", userId: targetUser.id, userTag: targetUser.tag, cantidad: cantidadBorrada, motivo, ejecutadoBy: `${interaction.user.tag} (${interaction.user.id})`, fecha: fechaHoraAhora() });
 
         const logChannel = await client.channels.fetch(CANAL_LOG_REGISTROS);
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           await logChannel.send({ embeds: [new EmbedBuilder().setColor(0xff6600)
-            .setTitle("<a:dancergb:1357113390413123775> | LOGs — Multas Eliminadas")
+            .setTitle("<a:Reprobado:1399874121055076372> | LOG — Multas Eliminadas")
             .setThumbnail(targetUser.displayAvatarURL())
             .addFields(
               { name: "<:Miembro:1473969750139994112> | Usuario",           value: `${targetUser}\n\`${targetUser.tag}\` · \`${targetUser.id}\``, inline: false },
               { name: "<:adv:1468761911821602947> | Multas borradas",       value: `\`${cantidadBorrada}\``, inline: true },
-              { name: "<:Ehh:1457908929504870475> | Motivo",                value: motivo, inline: false },
+              { name: "<:adv:1468761911821602947> | Motivo",                value: motivo, inline: false },
               { name: "<:Moderadores:1473981745689923728> | Ejecutado por", value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
               { name: "<a:cargando:1456888296381874207> | Fecha",           value: `\`${fechaHoraAhora()}\``, inline: true },
             )
@@ -991,7 +987,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
-    // ── /solicitar-rol ────────────────────────────────────────────────────
+    // /solicitar-rol
     if (interaction.commandName === "solicitar-rol") {
       const rolId    = interaction.options.getString("nombre-rol", true);
       const motivo   = interaction.options.getString("motivo", true);
@@ -1021,11 +1017,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           .setThumbnail(interaction.user.displayAvatarURL())
           .setImage(pruebas.url)
           .addFields(
-            { name: "<:Miembro:1473969750139994112> | Miembro",             value: `<@${interaction.user.id}>`, inline: true },
-            { name: "<a:Nerd:1357113815623536791> | Rol solicitado",        value: `<@&${rolId}>`, inline: true },
-            { name: "<:discord:1468196272199569410> | Trabajos primarios",  value: trabajosTexto, inline: false },
-            { name: "<:adv:1468761911821602947> | Motivo",                  value: motivo, inline: false },
-            { name: "<a:check1:1468762093741412553> | Pruebas",             value: "*(foto adjunta abajo)*", inline: false }
+            { name: "<:Miembro:1473969750139994112> | Miembro",            value: `<@${interaction.user.id}>`, inline: true },
+            { name: "<a:Nerd:1357113815623536791> | Rol solicitado",       value: `<@&${rolId}>`, inline: true },
+            { name: "<:discord:1468196272199569410> | Trabajos primarios", value: trabajosTexto, inline: false },
+            { name: "<:adv:1468761911821602947> | Motivo",                 value: motivo, inline: false },
+            { name: "<a:check1:1468762093741412553> | Pruebas",            value: "*(foto adjunta abajo)*", inline: false }
           )
           .setFooter({ text: `Solicitud enviada · ${fechaHoraAhora()}` });
         const solicitudChannel = await client.channels.fetch(CANAL_SOLICITAR_ROL);
@@ -1044,7 +1040,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
-    // ── /info-discord ─────────────────────────────────────────────────────
+    // /info-discord
     if (interaction.commandName === "info-discord") {
       const targetUser = interaction.options.getUser("usuario", false) ?? interaction.user;
       await interaction.deferReply({ ephemeral: true });
@@ -1073,7 +1069,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
     }
 
-    // ── /eliminar-trabajo ─────────────────────────────────────────────────
+    // /eliminar-trabajo
     if (interaction.commandName === "eliminar-trabajo") {
       if (!hasStaffSolicitudesRole(interaction.member) && !interaction.memberPermissions?.has("ManageRoles")) {
         return interaction.reply({ content: "<:equiz:1468761969518706708> | No tenés los permisos necesarios para usar este comando.", ephemeral: true });
