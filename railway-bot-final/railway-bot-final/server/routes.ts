@@ -777,15 +777,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const arrestoEmbed = new EmbedBuilder()
           .setColor(0xed4245)
-          .setTitle("<:BAN:1350470431441682514> | Registro de Arresto — Argentina RP")
+          .setTitle("<a:Policia4:1476825986107572397> | Registro de Arresto")
           .setImage(fotoArresto.url)
           .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
             { name: "<:Miembro:1473969750139994112> | Detenido",             value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
-            { name: "<:Moderadores:1473981745689923728> | Oficial a cargo",  value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
+            { name: "<:Policia5:1476826042034425971> | Oficial a cargo",  value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
             { name: "\u200b",                                                 value: "\u200b", inline: true },
-            { name: "<:adv:1468761911821602947> | Cargos aplicados",         value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
-            { name: "<:chik:1473970031489454100> | Gastos totales",          value: gastos.total, inline: true },
+            { name: "<:Policia1:1476825790606741637> | Cargos aplicados",         value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
+            { name: "<:Triste:1476829262282752052> | Gastos totales",          value: gastos.total, inline: true },
             { name: "<a:cargando:1456888296381874207> | Fecha de arresto",   value: `\`${fechaHoy()}\``, inline: true },
           )
           .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC · Sistema de Arrestos" })
@@ -800,14 +800,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           const logEmbed = new EmbedBuilder()
             .setColor(0xed4245)
-            .setTitle("<:config:1473970137089445909> | LOG — Nuevo Arresto Registrado")
+            .setTitle("<:Policia2:1476825854045847562> | LOGs — Arresto Registrado")
             .setThumbnail(targetUser.displayAvatarURL())
             .setImage(fotoArresto.url)
             .addFields(
               { name: "<:Miembro:1473969750139994112> | Arrestado",       value: `${targetUser}\n\`${targetUser.tag}\` · \`${targetUser.id}\``, inline: false },
-              { name: "<a:check1:1468762093741412553> | Oficial",          value: `${interaction.user}\n\`${interaction.user.tag}\` · \`${interaction.user.id}\``, inline: false },
-              { name: "<:Ehh:1457908929504870475> | Cargos aplicados",    value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
-              { name: "<:chik:1473970031489454100> | Gastos detectados",  value: gastos.detalle, inline: true },
+              { name: "<:Policia5:1476826042034425971> | Oficial",          value: `${interaction.user}\n\`${interaction.user.tag}\` · \`${interaction.user.id}\``, inline: false },
+              { name: "<:Triste:1476829262282752052> | Cargos aplicados",    value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
+              { name: "<a:check1:1468762093741412553> | Gastos detectados",  value: gastos.detalle, inline: true },
               { name: "💰 | Total acumulado",                              value: gastos.total, inline: true },
               { name: "<a:cargando:1456888296381874207> | Fecha y hora",  value: `\`${fechaHoraAhora()}\``, inline: false },
             )
@@ -833,16 +833,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const registroEmbed = new EmbedBuilder()
           .setColor(0x5865f2)
-          .setTitle("<:BAN:1350470431441682514> | Historial de Arrestos — Argentina RP")
+          .setTitle("<:Policia5:1476826042034425971> | LOGs - Arresto")
           .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
             { name: "<:Miembro:1473969750139994112> | Usuario",           value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
-            { name: "<a:Nerd:1357113815623536791> | Total arrestos",      value: `\`${totalArrestos}\``, inline: true },
+            { name: "<a:Policia4:1476825986107572397> | Total arrestos",      value: `\`${totalArrestos}\``, inline: true },
             { name: "\u200b",                                              value: "\u200b", inline: true },
             { name: "💰 | Gastos totales acumulados",                     value: gastosAcumulados.total, inline: true },
             { name: "<a:cargando:1456888296381874207> | Última consulta", value: `\`${fechaHoraAhora()}\``, inline: true },
           )
-          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC · Sistema de Registros" })
+          .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC" })
           .setTimestamp();
 
         const components: any[] = [];
@@ -850,7 +850,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const ultimos = historial.slice(0, 25);
           const selectCargos = new StringSelectMenuBuilder()
             .setCustomId(`arrestos_cargos_${targetUser.id}`)
-            .setPlaceholder("📋 Historial — Seleccioná un arresto para ver sus cargos")
+            .setPlaceholder("📋 | Historial — Seleccioná un arresto para ver sus cargos")
             .addOptions(ultimos.map((a) => ({
               label:       `Arresto #${a.id} — ${a.fecha}`,
               value:       `cargo_${a.id}`,
@@ -876,13 +876,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const logChannel = await client.channels.fetch(CANAL_LOG_REGISTROS);
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           await logChannel.send({ embeds: [new EmbedBuilder().setColor(0xff6600)
-            .setTitle("<a:Reprobado:1399874121055076372> | LOG — Arrestos Eliminados")
+            .setTitle("<a:Aprobado:1399874076402778122> | LOGs — Arrestos Eliminados")
             .setThumbnail(targetUser.displayAvatarURL())
             .addFields(
               { name: "<:Miembro:1473969750139994112> | Usuario",            value: `${targetUser}\n\`${targetUser.tag}\` · \`${targetUser.id}\``, inline: false },
-              { name: "<:BAN:1350470431441682514> | Arrestos borrados",       value: `\`${cantidadBorrada}\``, inline: true },
+              { name: "<:chik:1473970031489454100> | Arrestos borrados",       value: `\`${cantidadBorrada}\``, inline: true },
               { name: "<:adv:1468761911821602947> | Motivo",                  value: motivo, inline: false },
-              { name: "<:Moderadores:1473981745689923728> | Ejecutado por",   value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
+              { name: "<:uno:1468199771532427264> | Ejecutado por",   value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
               { name: "<a:cargando:1456888296381874207> | Fecha",             value: `\`${fechaHoraAhora()}\``, inline: true },
             )
             .setFooter({ text: "Sistema de Registros — Argentina RP · Eliminación de Arrestos" }).setTimestamp()] });
@@ -915,15 +915,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const multaEmbed = new EmbedBuilder()
           .setColor(0xff6600)
-          .setTitle("<:adv:1468761911821602947> | Registro de Multa — Argentina RP")
+          .setTitle("<:Policia2:1476825854045847562> | Registro de Multa")
           .setImage(fotoMulta.url)
           .setThumbnail(targetUser.displayAvatarURL())
           .addFields(
             { name: "<:Miembro:1473969750139994112> | Multado",              value: `${targetUser}\n\`${targetUser.tag}\``, inline: true },
-            { name: "<:Moderadores:1473981745689923728> | Oficial a cargo",  value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
+            { name: "<:Policia5:1476826042034425971> | Oficial a cargo",  value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
             { name: "\u200b",                                                 value: "\u200b", inline: true },
             { name: "<:adv:1468761911821602947> | Cargos / Infracción",      value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
-            { name: "<:chik:1473970031489454100> | Gastos totales",          value: gastos.total, inline: true },
+            { name: "<:Triste:1476829262282752052> | Gastos totales",          value: gastos.total, inline: true },
             { name: "<a:cargando:1456888296381874207> | Fecha de multa",     value: `\`${fechaHoy()}\``, inline: true },
           )
           .setFooter({ text: "© Todos los derechos reservados 2026, Argentina RP┊ER:LC · Sistema de Multas" })
@@ -938,15 +938,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           const logEmbed = new EmbedBuilder()
             .setColor(0xff6600)
-            .setTitle("<:config:1473970137089445909> | LOG — Nueva Multa Registrada")
+            .setTitle("<a:Policia4:1476825986107572397> | LOGs — Multa Registrada")
             .setThumbnail(targetUser.displayAvatarURL())
             .setImage(fotoMulta.url)
             .addFields(
               { name: "<:Miembro:1473969750139994112> | Multado",         value: `${targetUser}\n\`${targetUser.tag}\` · \`${targetUser.id}\``, inline: false },
-              { name: "<a:check1:1468762093741412553> | Oficial",          value: `${interaction.user}\n\`${interaction.user.tag}\` · \`${interaction.user.id}\``, inline: false },
-              { name: "<:Ehh:1457908929504870475> | Cargos aplicados",    value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
-              { name: "<:chik:1473970031489454100> | Gastos detectados",  value: gastos.detalle, inline: true },
-              { name: "💰 | Total acumulado",                              value: gastos.total, inline: true },
+              { name: "<:Policia5:1476826042034425971> | Oficial",          value: `${interaction.user}\n\`${interaction.user.tag}\` · \`${interaction.user.id}\``, inline: false },
+              { name: "<:Policia2:1476825854045847562> | Cargos aplicados",    value: `\`\`\`${cargosDisplay}\`\`\``, inline: false },
+              { name: "<a:Nerd:1357113815623536791> | Gastos detectados",  value: gastos.detalle, inline: true },
+              { name: "<:Triste:1476829262282752052> | Total acumulado",                              value: gastos.total, inline: true },
               { name: "<a:cargando:1456888296381874207> | Fecha y hora",  value: `\`${fechaHoraAhora()}\``, inline: false },
             )
             .setFooter({ text: "Sistema de Registros — Argentina RP · Multa" })
@@ -972,16 +972,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const logChannel = await client.channels.fetch(CANAL_LOG_REGISTROS);
         if (logChannel instanceof TextChannel || logChannel instanceof NewsChannel) {
           await logChannel.send({ embeds: [new EmbedBuilder().setColor(0xff6600)
-            .setTitle("<a:Reprobado:1399874121055076372> | LOG — Multas Eliminadas")
+            .setTitle("<:Policia1:1476825790606741637> | LOGs — Multas Eliminadas")
             .setThumbnail(targetUser.displayAvatarURL())
             .addFields(
               { name: "<:Miembro:1473969750139994112> | Usuario",           value: `${targetUser}\n\`${targetUser.tag}\` · \`${targetUser.id}\``, inline: false },
               { name: "<:adv:1468761911821602947> | Multas borradas",       value: `\`${cantidadBorrada}\``, inline: true },
-              { name: "<:adv:1468761911821602947> | Motivo",                value: motivo, inline: false },
-              { name: "<:Moderadores:1473981745689923728> | Ejecutado por", value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
+              { name: "<:Ehh:1457908929504870475> | Motivo",                value: motivo, inline: false },
+              { name: "<:Policia5:1476826042034425971> | Ejecutado por", value: `${interaction.user}\n\`${interaction.user.tag}\``, inline: true },
               { name: "<a:cargando:1456888296381874207> | Fecha",           value: `\`${fechaHoraAhora()}\``, inline: true },
             )
-            .setFooter({ text: "Sistema de Registros — Argentina RP · Eliminación de Multas" }).setTimestamp()] });
+            .setFooter({ text: "Sistema de Registros — Eliminación de Multas" }).setTimestamp()] });
         }
         return interaction.editReply({ content: `<a:Aprobado:1399874076402778122> | Se eliminaron **${cantidadBorrada}** multa(s) de ${targetUser} de la base de datos.\n**Motivo:** ${motivo}` });
       } catch (error: any) { return interaction.editReply({ content: `Error: \`${error?.message ?? String(error)}\`` }); }
@@ -1018,10 +1018,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           .setImage(pruebas.url)
           .addFields(
             { name: "<:Miembro:1473969750139994112> | Miembro",            value: `<@${interaction.user.id}>`, inline: true },
-            { name: "<a:Nerd:1357113815623536791> | Rol solicitado",       value: `<@&${rolId}>`, inline: true },
-            { name: "<:discord:1468196272199569410> | Trabajos primarios", value: trabajosTexto, inline: false },
-            { name: "<:adv:1468761911821602947> | Motivo",                 value: motivo, inline: false },
-            { name: "<a:check1:1468762093741412553> | Pruebas",            value: "*(foto adjunta abajo)*", inline: false }
+            { name: "<:Policia5:1476826042034425971> | Rol solicitado",       value: `<@&${rolId}>`, inline: true },
+            { name: "<:Policia1:1476825790606741637> | Trabajos primarios", value: trabajosTexto, inline: false },
+            { name: "<:Ehh:1457908929504870475> | Motivo",                 value: motivo, inline: false },
+            { name: "<a:Policia4:1476825986107572397> | Pruebas",            value: "*(foto adjunta abajo)*", inline: false }
           )
           .setFooter({ text: `Solicitud enviada · ${fechaHoraAhora()}` });
         const solicitudChannel = await client.channels.fetch(CANAL_SOLICITAR_ROL);
